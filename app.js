@@ -135,9 +135,7 @@ function renderSearchResults(stops) {
     li.innerHTML = `<a class="justify-between">
       <span>
         <span class="font-medium">${s.name}</span>
-        <span class="ml-2 opacity-60 text-xs">${s.id}</span>
       </span>
-      <span class="badge badge-ghost">stop</span>
     </a>`;
     li.addEventListener('click', () => {
       selectStop(s);
@@ -255,6 +253,8 @@ function renderDepartures(items) {
   $('#departures-count').textContent = items.length;
   if (!items.length) {
     setHidden($('#departures-empty'), false);
+    const msgEl = document.getElementById('departures-empty-msg');
+    if (msgEl) msgEl.textContent = 'No departures in this time window.';
     return;
   }
   const frag = document.createDocumentFragment();
@@ -288,6 +288,8 @@ async function refreshAll() {
     $('#departures-body').innerHTML = '';
     $('#departures-count').textContent = '0';
     setHidden($('#departures-empty'), false);
+    const msgEl = document.getElementById('departures-empty-msg');
+    if (msgEl) msgEl.textContent = 'No stop/station selected.';
     return;
   }
   const activeTab = $('#duration-tabs .tab.tab-active');
