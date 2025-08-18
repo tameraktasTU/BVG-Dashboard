@@ -313,7 +313,10 @@ function startFixedRefresh() {
 }
 
 const themeToggle = $('#theme-toggle');
-const initialTheme = localStorage.getItem('theme') || 'light';
+let initialTheme = localStorage.getItem('theme');
+if (!initialTheme) {
+  initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
 document.documentElement.setAttribute('data-theme', initialTheme);
 themeToggle.checked = initialTheme === 'dark';
 themeToggle.addEventListener('change', () => {
