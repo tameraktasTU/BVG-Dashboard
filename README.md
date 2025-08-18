@@ -44,7 +44,7 @@ Powered by `v6.bvg.transport.rest`.
 
 ## ⚙️ Behavior & Persistence
 
-- Auto‑refresh interval: 30 seconds (fixed)
+- Auto‑refresh interval: 30 seconds
 - Selected stop persists via `localStorage`
 - Theme persists via `localStorage`
 - Local time updates every second
