@@ -9,6 +9,7 @@ Beautiful, realtime departures for Berlin/Brandenburg — no build step, just op
 <img alt="Tech" src="https://img.shields.io/badge/CDN%20Only-Tailwind%20v4%20%2B%20daisyUI%20v5-14b8a6?style=for-the-badge"/>
 <img alt="Data" src="https://img.shields.io/badge/Data-v6.bvg.transport.rest-3b82f6?style=for-the-badge"/>
 <img alt="Mode" src="https://img.shields.io/badge/Themes-Light%20%E2%97%8F%20Dark-8b5cf6?style=for-the-badge"/>
+<a href="https://bvg.tameraktas.de"><img alt="Live" src="https://img.shields.io/badge/Live%20Site-bvg.tameraktas.de-10b981?style=for-the-badge"/></a>
 
 </div>
 
