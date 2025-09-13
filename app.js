@@ -272,7 +272,7 @@ function renderDepartures(items) {
     let delayBadge = '';
     if (delay != null) {
       const mins = Math.round(delay / 60);
-      if (mins === 0) delayBadge = '<span class="badge badge-sm badge-success badge-outline whitespace-nowrap">On time</span>';
+  if (mins === 0) delayBadge = '';
       else if (mins > 0) delayBadge = `<span class=\"badge badge-sm badge-warning whitespace-nowrap\">+${mins}m</span>`;
       else delayBadge = `<span class=\"badge badge-sm badge-info whitespace-nowrap\">${mins}m</span>`;
     }
