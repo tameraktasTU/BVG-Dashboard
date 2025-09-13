@@ -142,6 +142,15 @@ function renderSearchResults(stops) {
       resultsBox.classList.add('hidden');
       resultsBox.innerHTML = '';
       searchInput.value = s.name;
+      searchPrevValue = s.name;
+      suppressBlur = false;
+      searchInput.blur();
+      setTimeout(() => {
+        if (document.activeElement === searchInput) {
+          const btn = document.getElementById('refresh-now');
+          if (btn) btn.focus();
+        }
+      }, 0);
     });
     ul.appendChild(li);
   });
