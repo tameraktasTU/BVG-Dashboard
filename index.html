@@ -39,6 +39,14 @@
         font-weight: 600;
         box-shadow: inset 0 -2px 0 0 hsl(var(--p));
       }
+      /* Hide scrollbar */
+      .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+      }
+      .scrollbar-hide {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
     </style>
   </head>
   <body class="min-h-screen bg-base-200 text-base-content flex flex-col">
@@ -153,6 +161,35 @@
     </footer>
 
     <div id="toast" class="toast toast-top toast-end z-50"></div>
+
+    <!-- Line Overview Modal -->
+    <dialog id="line-overview-modal" class="modal">
+      <div class="modal-box max-w-2xl">
+        <form method="dialog">
+          <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
+        </form>
+        <h3 class="font-bold text-lg mb-4">
+          <span class="inline-flex items-center gap-2">
+            <span id="modal-line-badge" class="badge badge-lg"></span>
+            <span id="modal-line-direction"></span>
+          </span>
+        </h3>
+        <div id="modal-loading" class="hidden py-4">
+          <progress class="progress w-full"></progress>
+          <p class="text-center text-sm opacity-70 mt-2">Loading stopovers...</p>
+        </div>
+        <div id="modal-error" class="hidden alert alert-error mb-4">
+          <span>Failed to load journey details. Please try again.</span>
+        </div>
+        <div id="stopovers-container" class="max-h-96 overflow-y-auto scrollbar-hide">
+          <!-- Stopovers will be rendered here -->
+        </div>
+      </div>
+      <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+      </form>
+    </dialog>
+
     <script src="./app.js"></script>
   </body>
 </html>

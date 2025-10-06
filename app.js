@@ -118,7 +118,6 @@ async function searchStops(q) {
     resultsBox.innerHTML = '';
     resultsBox.classList.add('hidden');
     showToast('Search error. Try again.', 'error');
-    console.error(e);
   }
 }
 
@@ -249,7 +248,6 @@ async function loadDepartures(stopId, duration) {
     items.sort((a, b) => new Date(a.plannedWhen || a.when || 0) - new Date(b.plannedWhen || b.when || 0));
     renderDepartures(items);
   } catch (e) {
-    console.error(e);
     showToast('Failed to load departures', 'error');
   } finally {
     setHidden($('#departures-loading'), true);
@@ -277,6 +275,7 @@ function renderDepartures(items) {
       else delayBadge = `<span class=\"badge badge-sm badge-info whitespace-nowrap\">${mins}m</span>`;
     }
     const tr = document.createElement('tr');
+    tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
     tr.innerHTML = `
       <td class="font-mono p-2 md:p-3 text-[0.92rem] md:text-base">${fmtTime(it.when || it.plannedWhen)}</td>
       <td class="p-2 md:p-3 text-[0.92rem] md:text-base">
@@ -287,9 +286,171 @@ function renderDepartures(items) {
   <td class="truncate max-w-[8rem] md:max-w-none p-2 md:p-3 text-[0.92rem] md:text-base">${it.direction || '—'}</td>
   <td class="text-right whitespace-nowrap p-2 md:p-3 text-[0.92rem] md:text-base">${delayBadge}</td>
     `;
+    // Add click handler to show line overview
+    tr.addEventListener('click', () => showLineOverview(it));
     frag.appendChild(tr);
   });
   tbody.appendChild(frag);
+}
+
+async function fetchTripDetails(tripId) {
+  const url = `${API_BASE}/trips/${encodeURIComponent(tripId)}?stopovers=true&remarks=true&language=en&pretty=false`;
+  return await fetchJSON(url);
+}
+
+async function showLineOverview(departure) {
+  const modal = $('#line-overview-modal');
+  const lineBadge = $('#modal-line-badge');
+  const lineDirection = $('#modal-line-direction');
+  const loading = $('#modal-loading');
+  const errorDiv = $('#modal-error');
+  const container = $('#stopovers-container');
+
+  // Set header info
+  lineBadge.className = `badge badge-lg ${productBadgeClass(departure.line)}`;
+  lineBadge.textContent = departure.line?.name || departure.line?.id || '?';
+  lineDirection.textContent = departure.direction || 'Unknown';
+
+  // Show modal and loading state
+  modal.showModal();
+  setHidden(loading, false);
+  setHidden(errorDiv, true);
+  container.innerHTML = '';
+
+  try {
+    // Try to fetch trip details using tripId
+    if (!departure.tripId) {
+      throw new Error('No trip ID available');
+    }
+
+    const trip = await fetchTripDetails(departure.tripId);
+    
+    // Get stopovers from the trip response - try multiple possible locations
+    const stopovers = trip?.stopovers || trip?.trip?.stopovers || [];
+    
+    if (!stopovers.length) {
+      throw new Error('No stopovers found');
+    }
+
+    renderStopovers(stopovers, departure);
+  } catch (e) {
+    setHidden(errorDiv, false);
+  } finally {
+    setHidden(loading, true);
+  }
+}
+
+function renderStopovers(stopovers, departure) {
+  const container = $('#stopovers-container');
+  container.innerHTML = '';
+
+  // Find the current stop index
+  const currentStopId = state.stop?.id;
+  let currentIndex = stopovers.findIndex(s => s.stop?.id === currentStopId);
+  
+  // If we can't find exact match, try to find by name
+  if (currentIndex === -1 && state.stop?.name) {
+    currentIndex = stopovers.findIndex(s => 
+      s.stop?.name?.toLowerCase().includes(state.stop.name.toLowerCase()) ||
+      state.stop.name.toLowerCase().includes(s.stop?.name?.toLowerCase())
+    );
+  }
+
+  // Get the line color from the badge class
+  const badgeClass = productBadgeClass(departure.line);
+  let lineColor = '#0080AB'; // Default accent color
+  
+  // Extract color from badge class if it contains bg-[#...]
+  const colorMatch = badgeClass.match(/bg-\[([#\w]+)\]/);
+  if (colorMatch) {
+    lineColor = colorMatch[1];
+  } else if (badgeClass.includes('badge-primary')) {
+    lineColor = '#0080AB'; // Primary color for generic subway
+  }
+
+  // Create timeline container
+  const timeline = document.createElement('div');
+  timeline.className = 'flex flex-col gap-0 pl-2';
+
+  stopovers.forEach((stopover, idx) => {
+    const isPassed = currentIndex !== -1 && idx < currentIndex;
+    const isCurrent = idx === currentIndex;
+    const isFuture = currentIndex === -1 || idx > currentIndex;
+    
+    const stopDiv = document.createElement('div');
+    stopDiv.className = 'flex items-stretch gap-3 relative mb-2';
+    
+    if (isCurrent) {
+      stopDiv.className += ' rounded-lg';
+      stopDiv.id = 'current-stop-item'; // Add ID for scrolling
+    }
+
+    // Timeline indicator
+    const timelineIndicator = document.createElement('div');
+    timelineIndicator.className = 'flex flex-col items-center flex-shrink-0 relative';
+    timelineIndicator.innerHTML = `
+      ${idx > 0 ? `<div class="w-0.5 h-2 absolute top-0" style="background-color: ${isPassed || isCurrent ? '#9ca3af' : lineColor};"></div>` : ''}
+      <div class="w-3 h-3 rounded-full z-10 my-2 ${isCurrent ? 'ring-4 ring-primary/30' : ''}" style="background-color: ${isCurrent ? lineColor : isPassed ? '#9ca3af' : lineColor};"></div>
+      ${idx < stopovers.length - 1 ? `<div class="w-0.5 absolute top-2" style="height: calc(100% + 0.5rem); background-color: ${isPassed ? '#9ca3af' : lineColor};"></div>` : ''}
+    `;
+
+    // Stop info
+    const infoDiv = document.createElement('div');
+    infoDiv.className = 'flex-1 min-w-0 flex items-center px-3';
+    
+    const departureTime = stopover.departure ? fmtTime(stopover.departure) : stopover.arrival ? fmtTime(stopover.arrival) : '—';
+    const platform = stopover.platform || stopover.plannedPlatform;
+    
+    // Calculate delay for this stopover
+    const delay = stopover.departureDelay ?? stopover.arrivalDelay ?? computeDelaySecs(
+      stopover.departure || stopover.arrival,
+      stopover.plannedDeparture || stopover.plannedArrival
+    );
+    
+    let delayBadge = '';
+    if (delay != null) {
+      const mins = Math.round(delay / 60);
+      if (mins > 0) {
+        delayBadge = `<span class="inline-flex items-center gap-0.5 px-1 rounded text-[0.65rem] leading-none font-medium bg-warning/20 text-warning border border-warning/30" style="padding-top: 1px; padding-bottom: 1px;">
+          +${mins}
+        </span>`;
+      } else if (mins < 0) {
+        delayBadge = `<span class="inline-flex items-center gap-0.5 px-1 rounded text-[0.65rem] leading-none font-medium bg-info/20 text-info border border-info/30" style="padding-top: 1px; padding-bottom: 1px;">
+          ${mins}
+        </span>`;
+      }
+    }
+    
+    let timeDisplay = `<span class="font-mono font-medium">${departureTime}</span>`;
+
+    infoDiv.innerHTML = `
+      <div class="flex items-center justify-between gap-2 flex-wrap flex-1">
+        <div class="flex-1 min-w-0">
+          <div class="font-medium truncate ${isCurrent ? 'font-bold' : isPassed ? 'opacity-40' : ''}">${stopover.stop?.name || 'Unknown'}</div>
+          <div class="text-sm flex items-center gap-2 flex-wrap mt-0.5 ${isPassed ? 'opacity-30' : 'opacity-70'}">
+            ${timeDisplay}
+            ${delayBadge}
+            ${platform ? `<span class="badge badge-xs badge-outline">Platform ${platform}</span>` : ''}
+            ${isCurrent ? `<span class="badge badge-xs text-white" style="background-color: ${lineColor};">Current Stop</span>` : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    stopDiv.appendChild(timelineIndicator);
+    stopDiv.appendChild(infoDiv);
+    timeline.appendChild(stopDiv);
+  });
+
+  container.appendChild(timeline);
+  
+  // Auto-scroll to current stop
+  setTimeout(() => {
+    const currentStopElement = document.getElementById('current-stop-item');
+    if (currentStopElement) {
+      currentStopElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, 100);
 }
 
 async function refreshAll() {
