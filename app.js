@@ -6,19 +6,19 @@ const productBadgeClass = (line) => {
   const product = line?.product;
   const tag = String(line?.name || line?.id || '');
   if (product === 'subway') {
-    const match = /U\s?(55|[1-9])\b/i.exec(tag);
+    const match = /U\s?([1-9])\b/i.exec(tag);
     if (match) {
-      const key = `U${match[1].toUpperCase()}`;
+      const key = `U${match[1]}`;
       const map = {
-        U1: { bg: '#7DAD4C', text: 'black' },
-        U2: { bg: '#DA421E', text: 'white' },
-        U3: { bg: '#007A5B', text: 'white' },
-        U4: { bg: '#F0D722', text: 'black' },
-        U55: { bg: '#7E5330', text: 'white' },
-        U6: { bg: '#8C6DAB', text: 'white' },
-        U7: { bg: '#528DBA', text: 'white' },
-        U8: { bg: '#224F86', text: 'white' },
-        U9: { bg: '#F3791D', text: 'white' },
+        U1: { bg: '#57A639', text: 'white' },  // RAL 6018 - Yellow Green
+        U2: { bg: '#C63927', text: 'white' },  // RAL 2002 - Vermillion
+        U3: { bg: '#00694C', text: 'white' },  // RAL 6016 - Turquoise Green
+        U4: { bg: '#F9A800', text: 'black' },  // RAL 1023 - Traffic Yellow
+        U5: { bg: '#6F4A28', text: 'white' },  // RAL 8007 - Fawn Brown
+        U6: { bg: '#6C4675', text: 'white' },  // RAL 4005 - Blue Lilac
+        U7: { bg: '#0080AB', text: 'white' },  // RAL 5012 - Light Blue
+        U8: { bg: '#004F7C', text: 'white' },  // RAL 5010 - Gentian Blue
+        U9: { bg: '#FA842B', text: 'white' },  // RAL 2003 - Pastel Orange
       };
       const conf = map[key];
       if (conf) return `bg-[${conf.bg}] text-${conf.text}`;
@@ -28,17 +28,17 @@ const productBadgeClass = (line) => {
     case 'subway':
       return 'badge-primary';
     case 'suburban':
-      return 'badge-success';
+      return 'bg-[#006E34] text-white';  // S-Bahn official green
     case 'tram':
-      return 'badge-error';
+      return 'bg-[#CC0000] text-white';  // Tram official red
     case 'bus':
-      return 'badge-warning';
+      return 'bg-[#A3007C] text-white';  // Bus official purple/magenta
     case 'ferry':
-      return 'badge-info';
+      return 'bg-[#009EE0] text-white';  // Ferry blue
     case 'regional':
-      return 'badge-neutral';
+      return 'bg-[#D50000] text-white';  // DB Regional red
     case 'express':
-      return 'badge-secondary';
+      return 'bg-[#EC0016] text-white';  // DB Express red
     default:
       return 'badge-ghost';
   }
