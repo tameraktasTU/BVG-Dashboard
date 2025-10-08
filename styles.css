@@ -1,0 +1,109 @@
+/* Time window tabs container */
+#duration-tabs {
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 0.1);
+  height: 3rem;
+  min-height: 3rem;
+  position: relative;
+  --indicator-left: 0px;
+  --indicator-width: 0px;
+}
+
+/* Sliding background indicator */
+#duration-tabs::before {
+  content: '';
+  position: absolute;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  left: var(--indicator-left);
+  width: var(--indicator-width);
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1), 0 1px 2px rgb(0 0 0 / 0.06);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 0;
+}
+
+[data-theme="dark"] #duration-tabs::before {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Time window tab buttons */
+#duration-tabs .tab {
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 0.5rem;
+  border: none;
+  background: transparent;
+  color: inherit;
+  opacity: 0.6;
+  cursor: pointer;
+  position: relative;
+  z-index: 1;
+}
+
+#duration-tabs .tab:hover {
+  opacity: 0.9;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme="dark"] #duration-tabs .tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+#duration-tabs .tab.tab-active {
+  font-weight: 600;
+  opacity: 1;
+  background: transparent;
+  box-shadow: none;
+}
+
+[data-theme="dark"] #duration-tabs .tab.tab-active {
+  background: transparent;
+}
+
+/* Refresh button styling */
+#refresh-now {
+  height: 3rem;
+  min-height: 3rem;
+  max-width: 3rem;
+  box-shadow: none !important;
+}
+
+/* Hide scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Delay badges - theme dependent */
+[data-theme="dark"] .delay-badge-warning {
+  background-color: rgb(251 146 60 / 0.15);
+  color: rgb(251 146 60);
+  border-color: rgb(251 146 60 / 0.4);
+}
+
+[data-theme="dark"] .delay-badge-info {
+  background-color: rgb(56 189 248 / 0.15);
+  color: rgb(56 189 248);
+  border-color: rgb(56 189 248 / 0.4);
+}
+
+[data-theme="light"] .delay-badge-warning,
+[data-theme="winter"] .delay-badge-warning {
+  background-color: rgb(217 119 6);
+  color: white;
+  border-color: rgb(180 83 9);
+}
+
+[data-theme="light"] .delay-badge-info,
+[data-theme="winter"] .delay-badge-info {
+  background-color: rgb(14 165 233);
+  color: white;
+  border-color: rgb(2 132 199);
+}

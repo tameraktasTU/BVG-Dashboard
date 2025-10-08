@@ -26,52 +26,7 @@
     </script>
     <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <style>
-    #duration-tabs .tab {
-        transition: color 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
-        border-radius: 0.5rem;
-        font-size: 1.2rem; /* subtly larger minute labels */
-      }
-      #duration-tabs .tab:hover {
-        box-shadow: 0 8px 14px -12px rgb(0 0 0 / 0.45);
-      }
-      #duration-tabs .tab.tab-active {
-        font-weight: 600;
-        box-shadow: inset 0 -2px 0 0 hsl(var(--p));
-      }
-      /* Hide scrollbar */
-      .scrollbar-hide::-webkit-scrollbar {
-        display: none;
-      }
-      .scrollbar-hide {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
-      
-      /* Delay badges - theme dependent */
-      [data-theme="dark"] .delay-badge-warning {
-        background-color: rgb(251 146 60 / 0.15);
-        color: rgb(251 146 60);
-        border-color: rgb(251 146 60 / 0.4);
-      }
-      [data-theme="dark"] .delay-badge-info {
-        background-color: rgb(56 189 248 / 0.15);
-        color: rgb(56 189 248);
-        border-color: rgb(56 189 248 / 0.4);
-      }
-      [data-theme="light"] .delay-badge-warning,
-      [data-theme="winter"] .delay-badge-warning {
-        background-color: rgb(217 119 6);
-        color: white;
-        border-color: rgb(180 83 9);
-      }
-      [data-theme="light"] .delay-badge-info,
-      [data-theme="winter"] .delay-badge-info {
-        background-color: rgb(14 165 233);
-        color: white;
-        border-color: rgb(2 132 199);
-      }
-    </style>
+    <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="min-h-screen bg-base-200 text-base-content flex flex-col">
     <header class="navbar bg-base-100 shadow-elevated sticky top-0 z-50">
@@ -111,22 +66,23 @@
               <div id="results" class="hidden absolute left-0 right-0 top-full mt-2 z-40 card bg-base-200 shadow-elevated max-h-80 overflow-y-auto"></div>
             </label>
 
-            <div class="form-control">
+            <div class="form-control w-full">
               <div class="label mb-3 md:mb-4"><span class="label-text text-base md:text-lg font-bold">Time window</span></div>
-              <div id="duration-tabs" class="tabs tabs-boxed tabs-lg p-0 ml-[-1rem]">
-                <a class="tab" data-minutes="10">10m</a>
-                <a class="tab" data-minutes="20">20m</a>
-                <a class="tab tab-active" data-minutes="30">30m</a>
-                <a class="tab" data-minutes="45">45m</a>
-                <a class="tab" data-minutes="60">60m</a>
+              <div class="flex items-center gap-2 w-full">
+                <div id="duration-tabs" class="flex gap-1 p-1 bg-base-200 rounded-lg flex-1">
+                  <button class="tab flex-1" data-minutes="10">10m</button>
+                  <button class="tab flex-1" data-minutes="20">20m</button>
+                  <button class="tab tab-active flex-1" data-minutes="30">30m</button>
+                  <button class="tab flex-1" data-minutes="45">45m</button>
+                  <button class="tab flex-1" data-minutes="60">60m</button>
+                </div>
+                <button id="refresh-now" class="btn btn-white btn-soft px-3 rounded-lg ml-auto flex-shrink-0">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M21 3v6h-6"/></svg>
+                </button>
               </div>
             </div>
 
-            <div class="flex flex-col gap-2 lg:items-end">
-              <button id="refresh-now" class="btn btn-accent btn-lg w-full lg:w-auto">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M21 3v6h-6"/></svg>
-                Refresh
-              </button>
+            <div class="flex justify-between items-center lg:flex-col lg:gap-2 lg:items-end lg:justify-end">
               <div class="text-xs opacity-70">Auto refresh: every 30s</div>
               <div class="text-xs opacity-70">Last update: <span id="last-update">–</span></div>
             </div>

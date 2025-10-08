@@ -494,11 +494,27 @@ async function refreshAll() {
   setLastUpdate();
 }
 
+// Update sliding indicator position
+function updateTabIndicator() {
+  const activeTab = $('#duration-tabs .tab.tab-active');
+  const container = $('#duration-tabs');
+  if (!activeTab || !container) return;
+  
+  const containerRect = container.getBoundingClientRect();
+  const tabRect = activeTab.getBoundingClientRect();
+  const left = tabRect.left - containerRect.left;
+  const width = tabRect.width;
+  
+  container.style.setProperty('--indicator-left', `${left}px`);
+  container.style.setProperty('--indicator-width', `${width}px`);
+}
+
 $('#duration-tabs')?.addEventListener('click', (e) => {
   const t = e.target.closest('.tab');
   if (!t) return;
   $$('#duration-tabs .tab').forEach((el) => el.classList.remove('tab-active'));
   t.classList.add('tab-active');
+  updateTabIndicator();
   refreshAll();
 });
 $('#refresh-now').addEventListener('click', refreshAll);
@@ -536,4 +552,9 @@ setInterval(() => {
   } catch {}
   startFixedRefresh();
   $('#local-time').textContent = new Date().toLocaleString();
+  
+  // Initialize tab indicator position
+  updateTabIndicator();
+  // Update indicator on window resize
+  window.addEventListener('resize', updateTabIndicator);
 })();
