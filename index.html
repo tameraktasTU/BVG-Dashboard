@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body class="min-h-screen bg-base-200 text-base-content flex flex-col">
-    <header class="navbar bg-base-100 shadow-elevated sticky top-0 z-50">
+    <header class="navbar bg-base-100 shadow-elevated sticky top-0 z-50 px-4">
       <div class="navbar-start gap-2">
         <div class="avatar">
           <div class="w-10 rounded">
@@ -61,7 +61,7 @@
               <label class="input input-bordered input-lg flex items-center gap-2 w-full">
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 opacity-70"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                 <input id="search" type="text" placeholder="Alexanderplatz, Zoologischer Garten…" class="grow text-base" autocomplete="off" />
-                <button id="use-location" class="btn btn-ghost btn-circle btn-lg tooltip" data-tip="Use my location" title="Use my location">📍</button>
+                <button id="use-location" class="btn btn-ghost btn-circle btn-lg tooltip -mr-4" data-tip="Use my location" title="Use my location">📍</button>
               </label>
               <div id="results" class="hidden absolute left-0 right-0 top-full mt-2 z-40 card bg-base-200 shadow-elevated max-h-80 overflow-y-auto"></div>
             </label>
