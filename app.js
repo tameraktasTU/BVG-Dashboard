@@ -270,9 +270,13 @@ function renderDepartures(items) {
     let delayBadge = '';
     if (delay != null) {
       const mins = Math.round(delay / 60);
-  if (mins === 0) delayBadge = '';
-      else if (mins > 0) delayBadge = `<span class=\"badge badge-sm badge-warning whitespace-nowrap\">+${mins}m</span>`;
-      else delayBadge = `<span class=\"badge badge-sm badge-info whitespace-nowrap\">${mins}m</span>`;
+      if (mins === 0) {
+        delayBadge = '';
+      } else if (mins > 0) {
+        delayBadge = `<span class="delay-badge delay-badge-warning inline-flex items-center justify-center px-1 py-0.5 rounded text-xs font-semibold border whitespace-nowrap w-[2.75rem]">+${mins}</span>`;
+      } else {
+        delayBadge = `<span class="delay-badge delay-badge-info inline-flex items-center justify-center px-1 py-0.5 rounded text-xs font-semibold border whitespace-nowrap w-[2.75rem]">${mins}</span>`;
+      }
     }
     const tr = document.createElement('tr');
     tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
@@ -344,15 +348,37 @@ function renderStopovers(stopovers, departure) {
   const container = $('#stopovers-container');
   container.innerHTML = '';
 
-  // Find the current stop index
+  // Find the current stop index - try multiple strategies
   const currentStopId = state.stop?.id;
-  let currentIndex = stopovers.findIndex(s => s.stop?.id === currentStopId);
+  const currentStopName = state.stop?.name;
+  const departureStopId = departure.stop?.id;
+  const departureStopName = departure.stop?.name;
   
-  // If we can't find exact match, try to find by name
-  if (currentIndex === -1 && state.stop?.name) {
+  let currentIndex = -1;
+  
+  // Strategy 1: Try exact ID match with state.stop
+  if (currentStopId) {
+    currentIndex = stopovers.findIndex(s => s.stop?.id === currentStopId);
+  }
+  
+  // Strategy 2: Try exact ID match with departure.stop (the actual stop where departure occurs)
+  if (currentIndex === -1 && departureStopId) {
+    currentIndex = stopovers.findIndex(s => s.stop?.id === departureStopId);
+  }
+  
+  // Strategy 3: Try name matching with state.stop
+  if (currentIndex === -1 && currentStopName) {
     currentIndex = stopovers.findIndex(s => 
-      s.stop?.name?.toLowerCase().includes(state.stop.name.toLowerCase()) ||
-      state.stop.name.toLowerCase().includes(s.stop?.name?.toLowerCase())
+      s.stop?.name?.toLowerCase().includes(currentStopName.toLowerCase()) ||
+      currentStopName.toLowerCase().includes(s.stop?.name?.toLowerCase())
+    );
+  }
+  
+  // Strategy 4: Try name matching with departure.stop
+  if (currentIndex === -1 && departureStopName) {
+    currentIndex = stopovers.findIndex(s => 
+      s.stop?.name?.toLowerCase().includes(departureStopName.toLowerCase()) ||
+      departureStopName.toLowerCase().includes(s.stop?.name?.toLowerCase())
     );
   }
 
@@ -411,11 +437,11 @@ function renderStopovers(stopovers, departure) {
     if (delay != null) {
       const mins = Math.round(delay / 60);
       if (mins > 0) {
-        delayBadge = `<span class="inline-flex items-center gap-0.5 px-1 rounded text-[0.65rem] leading-none font-medium bg-warning/20 text-warning border border-warning/30" style="padding-top: 1px; padding-bottom: 1px;">
+        delayBadge = `<span class="delay-badge delay-badge-warning inline-flex items-center justify-center px-0.5 rounded text-[0.65rem] leading-none font-semibold border w-[2.25rem]" style="padding-top: 1px; padding-bottom: 1px;">
           +${mins}
         </span>`;
       } else if (mins < 0) {
-        delayBadge = `<span class="inline-flex items-center gap-0.5 px-1 rounded text-[0.65rem] leading-none font-medium bg-info/20 text-info border border-info/30" style="padding-top: 1px; padding-bottom: 1px;">
+        delayBadge = `<span class="delay-badge delay-badge-info inline-flex items-center justify-center px-0.5 rounded text-[0.65rem] leading-none font-semibold border w-[2.25rem]" style="padding-top: 1px; padding-bottom: 1px;">
           ${mins}
         </span>`;
       }

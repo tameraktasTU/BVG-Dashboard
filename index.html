@@ -47,6 +47,30 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+      
+      /* Delay badges - theme dependent */
+      [data-theme="dark"] .delay-badge-warning {
+        background-color: rgb(251 146 60 / 0.15);
+        color: rgb(251 146 60);
+        border-color: rgb(251 146 60 / 0.4);
+      }
+      [data-theme="dark"] .delay-badge-info {
+        background-color: rgb(56 189 248 / 0.15);
+        color: rgb(56 189 248);
+        border-color: rgb(56 189 248 / 0.4);
+      }
+      [data-theme="light"] .delay-badge-warning,
+      [data-theme="winter"] .delay-badge-warning {
+        background-color: rgb(217 119 6);
+        color: white;
+        border-color: rgb(180 83 9);
+      }
+      [data-theme="light"] .delay-badge-info,
+      [data-theme="winter"] .delay-badge-info {
+        background-color: rgb(14 165 233);
+        color: white;
+        border-color: rgb(2 132 199);
+      }
     </style>
   </head>
   <body class="min-h-screen bg-base-200 text-base-content flex flex-col">
@@ -181,7 +205,7 @@
         <div id="modal-error" class="hidden alert alert-error mb-4">
           <span>Failed to load journey details. Please try again.</span>
         </div>
-        <div id="stopovers-container" class="max-h-96 overflow-y-auto scrollbar-hide">
+        <div id="stopovers-container" class="max-h-96 overflow-y-auto overflow-x-hidden scrollbar-hide">
           <!-- Stopovers will be rendered here -->
         </div>
       </div>
