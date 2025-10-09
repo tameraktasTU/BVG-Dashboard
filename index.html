@@ -1,175 +1,243 @@
 <!doctype html>
 <html lang="en" data-theme="winter">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BVG Display · Departures & Arrivals</title>
-    <meta name="description" content="Realtime BVG departures and arrivals dashboard" />
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Realtime BVG departures and arrivals dashboard for Berlin/Brandenburg transit" />
+  
+  <title>BVG Dashboard · Departures & Arrivals</title>
   <link rel="icon" href="https://de.wikipedia.org/wiki/Special:Dateipfad/Bvg-logo.svg" />
-    <script>
-      // Use system setting for dark/light mode as default
-      let savedTheme = localStorage.getItem('theme');
-      if (!savedTheme) {
-        savedTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-      document.documentElement.setAttribute('data-theme', savedTheme);
-      window.tailwind = window.tailwind || {};
-      window.tailwind.config = {
-        theme: {
-          extend: {
-            boxShadow: {
-              elevated: '0 10px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2)'
-            }
+  
+  <script>
+    const savedTheme = localStorage.getItem('theme') || 
+      (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    window.tailwind = window.tailwind || {};
+    window.tailwind.config = {
+      theme: {
+        extend: {
+          boxShadow: {
+            elevated: '0 10px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2)'
           }
         }
-      };
-    </script>
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body class="min-h-screen bg-base-200 text-base-content flex flex-col">
-    <header class="navbar bg-base-100 shadow-elevated sticky top-0 z-50 px-4">
-      <div class="navbar-start gap-2">
-        <div class="avatar">
-          <div class="w-10 rounded">
-            <img src="https://de.wikipedia.org/wiki/Special:Dateipfad/Bvg-logo.svg" alt="BVG" />
-          </div>
+      }
+    };
+  </script>
+  
+  <link href="https://cdn.jsdelivr.net/npm/daisyui@5" rel="stylesheet" type="text/css" />
+  <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+
+<body class="min-h-screen bg-base-200 text-base-content flex flex-col">
+  
+  <header class="navbar bg-base-100 shadow-elevated sticky top-0 z-50 px-4">
+    <div class="navbar-start gap-2">
+      <div class="avatar">
+        <div class="w-10 rounded">
+          <img src="https://de.wikipedia.org/wiki/Special:Dateipfad/Bvg-logo.svg" alt="BVG Logo" />
         </div>
       </div>
-      <div class="navbar-center">
-        <div class="text-center">
-          <h1 class="text-xl md:text-2xl font-bold leading-tight">BVG Departures & Arrivals</h1>
-          <p class="text-xs md:text-sm opacity-70">Realtime Berlin/Brandenburg transit</p>
-        </div>
+    </div>
+    
+    <div class="navbar-center">
+      <div class="text-center">
+        <h1 class="text-xl md:text-2xl font-bold leading-tight">
+          BVG Departures & Arrivals
+        </h1>
+        <p class="text-xs md:text-sm opacity-70">
+          Realtime Berlin/Brandenburg transit
+        </p>
       </div>
-      <div class="navbar-end gap-2 pr-2">
-        <label class="swap swap-rotate">
-          <input id="theme-toggle" type="checkbox" class="hidden" />
-          <svg class="swap-off w-7 h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
-          <svg class="swap-on w-7 h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        </label>
-      </div>
-    </header>
+    </div>
+    
+    <div class="navbar-end gap-2 pr-2">
+      <label class="swap swap-rotate" aria-label="Toggle theme">
+        <input id="theme-toggle" type="checkbox" class="hidden" />
+        <svg class="swap-off w-7 h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4"/>
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+        </svg>
+        <svg class="swap-on w-7 h-7" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </label>
+    </div>
+  </header>
 
   <main class="max-w-7xl mx-auto px-3 md:px-6 py-6 w-full flex-1">
-      <section class="card bg-base-100 shadow-elevated mb-6">
-        <div class="card-body gap-6">
-          <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
-            <label class="form-control w-full relative">
-              <div class="label mb-3 md:mb-4"><span class="label-text text-base md:text-lg font-bold">Search for a stop/station</span></div>
-              <label class="input input-bordered input-lg flex items-center gap-2 w-full">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 opacity-70"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-                <input id="search" type="text" placeholder="Alexanderplatz, Zoologischer Garten…" class="grow text-base" autocomplete="off" />
-                <button id="use-location" class="btn btn-ghost btn-circle btn-lg tooltip -mr-4" data-tip="Use my location" title="Use my location">📍</button>
-              </label>
-              <div id="results" class="hidden absolute left-0 right-0 top-full mt-2 z-40 card bg-base-200 shadow-elevated max-h-80 overflow-y-auto"></div>
-            </label>
-
-            <div class="form-control w-full">
-              <div class="label mb-3 md:mb-4"><span class="label-text text-base md:text-lg font-bold">Time window</span></div>
-              <div class="flex items-center gap-2 w-full">
-                <div id="duration-tabs" class="flex gap-1 p-1 bg-base-200 rounded-lg flex-1">
-                  <button class="tab flex-1" data-minutes="10">10m</button>
-                  <button class="tab flex-1" data-minutes="20">20m</button>
-                  <button class="tab tab-active flex-1" data-minutes="30">30m</button>
-                  <button class="tab flex-1" data-minutes="45">45m</button>
-                  <button class="tab flex-1" data-minutes="60">60m</button>
-                </div>
-                <button id="refresh-now" class="btn btn-white btn-soft px-3 rounded-lg ml-auto flex-shrink-0">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M21 12a9 9 0 1 1-6.219-8.56"/><path d="M21 3v6h-6"/></svg>
-                </button>
-              </div>
+    
+    <section class="card bg-base-100 shadow-elevated mb-6">
+      <div class="card-body gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 items-end">
+          
+          <label class="form-control w-full relative">
+            <div class="label mb-3 md:mb-4">
+              <span class="label-text text-base md:text-lg font-bold">
+                Search for a stop/station
+              </span>
             </div>
+            <label class="input input-bordered input-lg flex items-center gap-2 w-full">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 opacity-70">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+              </svg>
+              <input 
+                id="search" 
+                type="text" 
+                placeholder="Alexanderplatz, Zoologischer Garten…" 
+                class="grow text-base" 
+                autocomplete="off" 
+                aria-label="Search for stop or station"
+              />
+              <button 
+                id="use-location" 
+                class="btn btn-ghost btn-circle btn-lg tooltip -mr-4" 
+                data-tip="Use my location" 
+                title="Use my location"
+                aria-label="Use my location"
+              >
+                📍
+              </button>
+            </label>
+            <div 
+              id="results" 
+              class="hidden absolute left-0 right-0 top-full mt-2 z-40 card bg-base-200 shadow-elevated max-h-80 overflow-y-auto"
+            ></div>
+          </label>
 
-            <div class="flex justify-between items-center lg:flex-col lg:gap-2 lg:items-end lg:justify-end">
-              <div class="text-xs opacity-70">Auto refresh: every 30s</div>
-              <div class="text-xs opacity-70">Last update: <span id="last-update">–</span></div>
+          <div class="form-control w-full">
+            <div class="label mb-3 md:mb-4">
+              <span class="label-text text-base md:text-lg font-bold">
+                Time window
+              </span>
+            </div>
+            <div class="flex items-center gap-2 w-full">
+              <div id="duration-tabs" class="flex gap-1 p-1 bg-base-200 rounded-lg flex-1">
+                <button class="tab flex-1" data-minutes="10" aria-label="10 minutes">10m</button>
+                <button class="tab flex-1" data-minutes="20" aria-label="20 minutes">20m</button>
+                <button class="tab tab-active flex-1" data-minutes="30" aria-label="30 minutes">30m</button>
+                <button class="tab flex-1" data-minutes="45" aria-label="45 minutes">45m</button>
+                <button class="tab flex-1" data-minutes="60" aria-label="60 minutes">60m</button>
+              </div>
+              <button 
+                id="refresh-now" 
+                class="btn btn-white btn-soft px-3 rounded-lg ml-auto flex-shrink-0"
+                aria-label="Refresh departures"
+                title="Refresh departures"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                  <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                  <path d="M21 3v6h-6"/>
+                </svg>
+              </button>
             </div>
           </div>
 
+          <!-- Update Status -->
+          <div class="flex justify-between items-center lg:flex-col lg:gap-2 lg:items-end lg:justify-end">
+            <div class="text-xs opacity-70">Auto refresh: every 30s</div>
+            <div class="text-xs opacity-70">
+              Last update: <span id="last-update">–</span>
+            </div>
+          </div>
           
         </div>
-      </section>
+      </div>
+    </section>
 
-  <section class="grid grid-cols-1 gap-6">
-        <div class="card bg-base-100 shadow-elevated overflow-hidden">
-          <div class="card-body">
-            <div class="flex items-start gap-3 flex-wrap">
-              <div class="min-w-0 w-full">
-                <div class="flex items-center gap-2">
-                  <h2 class="card-title leading-tight m-0">Departures</h2>
-                  <span id="departures-count" class="badge badge-ghost">0</span>
-                </div>
-                <div class="mt-1 text-sm opacity-80 hidden" id="departures-stop"></div>
+    <section class="grid grid-cols-1 gap-6">
+      <div class="card bg-base-100 shadow-elevated overflow-hidden">
+        <div class="card-body">
+          
+          <div class="flex items-start gap-3 flex-wrap">
+            <div class="min-w-0 w-full">
+              <div class="flex items-center gap-2">
+                <h2 class="card-title leading-tight m-0">Departures</h2>
+                <span id="departures-count" class="badge badge-ghost">0</span>
               </div>
-            </div>
-            <div class="overflow-x-auto">
-      <table class="table table-zebra table-xs md:table-sm lg:table-md table-fixed text-sm md:text-base">
-                <thead>
-                  <tr>
-                    <th class="w-[3.5rem] md:w-[5.5rem]">Time</th>
-                    <th class="w-14 md:w-28 lg:w-32">Line</th>
-                    <th>Destination</th>
-                    <th class="w-16 md:w-20 lg:w-24 text-right">Delay</th>
-                  </tr>
-                </thead>
-                <tbody id="departures-body">
-                </tbody>
-              </table>
-            </div>
-            <div id="departures-empty" class="hidden">
-              <div class="alert">
-                <span id="departures-empty-msg">No departures in this time window.</span>
-              </div>
-            </div>
-            <div id="departures-loading" class="hidden">
-              <progress class="progress w-full"></progress>
+              <div class="mt-1 text-sm opacity-80 hidden" id="departures-stop"></div>
             </div>
           </div>
-        </div>
-      </section>
-
-    </main>
-
-    <footer class="mt-auto bg-base-100 border-t">
-  <div class="max-w-7xl mx-auto w-full px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm opacity-90 flex flex-wrap items-center justify-center text-center gap-x-2 md:gap-x-3 gap-y-1 md:gap-y-1">
-        <span class="w-full">Created by Tamer Aktas ◦ 2025</span>
-        <span>Data: v6.bvg.transport.rest</span>
-        <span>Local time: <span id="local-time"></span></span>
-      </div>
-    </footer>
-
-    <div id="toast" class="toast toast-top toast-end z-50"></div>
-
-    <!-- Line Overview Modal -->
-    <dialog id="line-overview-modal" class="modal">
-      <div class="modal-box max-w-2xl">
-        <form method="dialog">
-          <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2">✕</button>
-        </form>
-        <h3 class="font-bold text-lg mb-4">
-          <span class="inline-flex items-center gap-2">
-            <span id="modal-line-badge" class="badge badge-lg"></span>
-            <span id="modal-line-direction"></span>
-          </span>
-        </h3>
-        <div id="modal-loading" class="hidden py-4">
-          <progress class="progress w-full"></progress>
-          <p class="text-center text-sm opacity-70 mt-2">Loading stopovers...</p>
-        </div>
-        <div id="modal-error" class="hidden alert alert-error mb-4">
-          <span>Failed to load journey details. Please try again.</span>
-        </div>
-        <div id="stopovers-container" class="max-h-96 overflow-y-auto overflow-x-hidden scrollbar-hide">
-          <!-- Stopovers will be rendered here -->
+          
+          <div class="overflow-x-auto">
+            <table class="table table-zebra table-xs md:table-sm lg:table-md table-fixed text-sm md:text-base">
+              <thead>
+                <tr>
+                  <th class="w-[3.5rem] md:w-[5.5rem]">Time</th>
+                  <th class="w-14 md:w-28 lg:w-32">Line</th>
+                  <th>Destination</th>
+                  <th class="w-16 md:w-20 lg:w-24 text-right">Delay</th>
+                </tr>
+              </thead>
+              <tbody id="departures-body">
+              </tbody>
+            </table>
+          </div>
+          
+          <div id="departures-empty" class="hidden">
+            <div class="alert">
+              <span id="departures-empty-msg">No departures in this time window.</span>
+            </div>
+          </div>
+          
+          <div id="departures-loading" class="hidden">
+            <progress class="progress w-full"></progress>
+          </div>
+          
         </div>
       </div>
-      <form method="dialog" class="modal-backdrop">
-        <button>close</button>
+    </section>
+
+  </main>
+
+  <footer class="mt-auto bg-base-100 border-t">
+    <div class="max-w-7xl mx-auto w-full px-3 md:px-6 py-2 md:py-3 text-xs md:text-sm opacity-90 flex flex-wrap items-center justify-center text-center gap-x-2 md:gap-x-3 gap-y-1 md:gap-y-1">
+      <span class="w-full">Created by Tamer Aktas · 2025</span>
+      <span>Data: v6.bvg.transport.rest</span>
+      <span>Local time: <span id="local-time"></span></span>
+    </div>
+  </footer>
+
+  <div id="toast" class="toast toast-top toast-end z-50"></div>
+
+  <dialog id="line-overview-modal" class="modal">
+    <div class="modal-box max-w-2xl">
+      
+      <form method="dialog">
+        <button class="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" aria-label="Close modal">
+          ✕
+        </button>
       </form>
-    </dialog>
+      
+      <h3 class="font-bold text-lg mb-4">
+        <span class="inline-flex items-center gap-2">
+          <span id="modal-line-badge" class="badge badge-lg"></span>
+          <span id="modal-line-direction"></span>
+        </span>
+      </h3>
+      
+      <div id="modal-loading" class="hidden py-4">
+        <progress class="progress w-full"></progress>
+        <p class="text-center text-sm opacity-70 mt-2">Loading stopovers...</p>
+      </div>
+      
+      <div id="modal-error" class="hidden alert alert-error mb-4">
+        <span>Failed to load journey details. Please try again.</span>
+      </div>
+      
+      <div id="stopovers-container" class="max-h-96 overflow-y-auto overflow-x-hidden scrollbar-hide">
+      </div>
+      
+    </div>
+    
+    <form method="dialog" class="modal-backdrop">
+      <button aria-label="Close modal">close</button>
+    </form>
+  </dialog>
 
-    <script src="./app.js"></script>
-  </body>
+  <script src="./app.js"></script>
+  
+</body>
 </html>
