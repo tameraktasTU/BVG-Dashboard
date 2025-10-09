@@ -1,8 +1,8 @@
 <div align="center">
 
-# 🚉 BVG Departures Dashboard
+# 🚉 BVG Dashboard
 
-Beautiful, realtime departures for Berlin/Brandenburg — no build step, just open the file.
+**Beautiful, realtime departures for Berlin/Brandenburg**
 
 <br/>
 
@@ -15,13 +15,16 @@ Beautiful, realtime departures for Berlin/Brandenburg — no build step, just op
 
 ## ✨ Highlights
 
-- Fast stop search with type‑ahead (Enter/click to select)
-- Nearby stops via geolocation (when permitted)
-- Clean departures board, mobile‑optimized and compact
-- Time window tabs: 10m · 20m · 30m · 45m · 60m
-- Dark/Light theme toggle with persistence
-- Sticky footer with API source and local time
-- Pure HTML + JS + CSS over CDNs — zero tooling
+- **Fast stop search** with type‑ahead suggestions (Enter/click to select)
+- **Nearby stops** via geolocation with distance display (when permitted)
+- **Clean departures board** — mobile‑optimized, compact, and accessible
+- **Time window tabs** (15m · 30m · 60m) with smooth sliding animation
+- **Line overview modal** — click any departure to see full route with stopovers
+- **Smart delay badges** — color-coded indicators showing real-time delays
+- **Optimized API calls** — visibility-based auto-refresh, client-side filtering, and caching
+- **Dark/Light theme** toggle with persistence
+- **Local storage** — remembers your stop and time window preferences
+- **Pure HTML + JS + CSS** over CDNs — zero build tools, instant deployment
 
 ## 🚀 Quick Start
 
@@ -33,38 +36,60 @@ Tip: If your browser blocks location, click the 📍 button after granting permi
 
 ## 🧭 Using the Dashboard
 
-- Search: search for a stop, then pick a result.
-- Nearby: use the 📍 button to list nearby stops.
-- Time window: click a tab to change the horizon (10–60 minutes).
-- Refresh: press the Refresh button or wait for the 30s auto‑refresh.
-- Theme: toggle light/dark in the top right. Your choice is remembered.
+- **Search**: Type to search for a stop, then select from the dropdown (Enter or click)
+- **Nearby**: Click the 📍 button to find and list stops near your location
+- **Time window**: Select 15, 30, or 60 minutes — preference is saved automatically
+- **View route**: Click on any departure to see the complete journey with all stopovers
+- **Refresh**: Click the refresh button or wait for automatic 30-second updates
+- **Theme**: Toggle light/dark mode in the top right — your choice persists across sessions
 
 ## 🧩 Data & Endpoints
 
-Powered by `v6.bvg.transport.rest`.
+Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
+
+- **Real-time departures** with delay information
+- **Journey details** with complete stopover sequences
+- **Location-based search** for nearby transit stops
+- **Comprehensive stop database** across Berlin/Brandenburg
 
 ## ⚙️ Behavior & Persistence
 
-- Auto‑refresh interval: 30 seconds
-- Selected stop persists via `localStorage`
-- Theme persists via `localStorage`
-- Local time updates every second
+- **Auto-refresh**: 30-second interval (pauses when tab is hidden to save API calls)
+- **Smart caching**: Fetches 60 minutes of data, filters client-side when switching time windows
+- **LocalStorage persistence**:
+  - Selected stop and station name
+  - Time window preference (15/30/60 min)
+  - Theme choice (light/dark)
+- **Accessibility**: ARIA labels and semantic HTML throughout
+- **Local time**: Updates every second in the footer
 
 ## 🔎 Troubleshooting
 
-- “No departures”: ensure a stop is selected and the time window isn’t too short.
-- Geolocation: most browsers require HTTPS or `localhost`. If blocked, use search.
-- Rate limiting: the API may throttle excessive requests; keep the tab count modest.
-- Time format: uses your browser’s locale.
+- **No departures**: ensure a stop is selected and the time window isn’t too short.
+- **Geolocation**: most browsers require HTTPS or `localhost`. If blocked, use search.
+- **Rate limiting**: the API may throttle excessive requests; keep the tab count modest.
+- **Time format**: uses your browser’s locale.
 
 ## 📁 Project Structure
 
-- `index.html` — UI, Tailwind/daisyUI via CDN, layout and components
-- `app.js` — data fetching, rendering, state, theming, timers
+```
+├── index.html      # Clean semantic HTML with accessibility attributes
+├── styles.css      # External CSS with custom animations and theme styles
+├── app.js          # Organized application logic with clear sections:
+│                   #   - DOM utilities and constants
+│                   #   - State management with caching
+│                   #   - API integration and optimization
+│                   #   - Search and geolocation features
+│                   #   - Departure rendering and modal system
+│                   #   - Theme management and persistence
+└── README.md       # This file
+```
+---
 
 ## 🙌 Credits
 
-Data by `transport.rest`. Crafted with Tailwind CSS + daisyUI.
+**Data**: [BVG Transport REST API v6](https://v6.bvg.transport.rest) by [transport.rest](https://transport.rest)  
+**Styling**: [Tailwind CSS v4](https://tailwindcss.com) + [daisyUI v5](https://daisyui.com)  
+**Icons**: Native emoji and Unicode characters
 
-Created by Tamer Aktas • 2025
-
+**Created by [Tamer Aktas](https://tameraktas.de)** • 2025
