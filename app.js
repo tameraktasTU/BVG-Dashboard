@@ -677,10 +677,11 @@ $('#duration-tabs')?.addEventListener('click', async (e) => {
   tab.classList.add('tab-active');
   updateTabIndicator();
   
-  // Filter cached data without making API call
+  const duration = tab.getAttribute('data-minutes');
+  localStorage.setItem('selectedDuration', duration);
+  
   if (state.stop) {
-    const duration = Number(tab.getAttribute('data-minutes'));
-    await loadDepartures(state.stop.id, duration, false);
+    await loadDepartures(state.stop.id, Number(duration), false);
   }
 });
 
@@ -707,7 +708,7 @@ const initTheme = () => {
 };
 
 // ============================================================================
-// VISIBILITY CHANGE HANDLING (Reduce API calls when tab is hidden)
+// VISIBILITY CHANGE HANDLING
 // ============================================================================
 
 const handleVisibilityChange = () => {
@@ -756,6 +757,20 @@ setInterval(() => {
     }
   } catch (e) {
     console.error('Failed to restore saved stop:', e);
+  }
+  
+  // Restore previously selected time window from localStorage
+  try {
+    const savedDuration = localStorage.getItem('selectedDuration');
+    if (savedDuration) {
+      const tab = $(`#duration-tabs .tab[data-minutes="${savedDuration}"]`);
+      if (tab) {
+        $$('#duration-tabs .tab').forEach(el => el.classList.remove('tab-active'));
+        tab.classList.add('tab-active');
+      }
+    }
+  } catch (e) {
+    console.error('Failed to restore saved duration:', e);
   }
   
   // Initialize theme
