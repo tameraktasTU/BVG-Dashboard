@@ -187,7 +187,7 @@ $('#use-location').addEventListener('click', async () => {
   );
 });
 
-searchInput.addEventListener('input', debounce(() => searchStops(searchInput.value), 250));
+searchInput.addEventListener('input', debounce(() => searchStops(searchInput.value), 350));
 searchInput.addEventListener('focus', () => {
   searchPrevValue = searchInput.value;
   searchInput.value = '';
@@ -213,6 +213,7 @@ resultsBox.addEventListener('mouseup', () => { setTimeout(() => { suppressBlur =
 let state = {
   stop: null,
   refreshTimerId: null,
+  lastRefreshTime: null,
 };
 
 function selectStop(stop) {
@@ -492,6 +493,7 @@ async function refreshAll() {
   const duration = activeTab ? Number(activeTab.getAttribute('data-minutes')) : 30;
   await loadDepartures(state.stop.id, duration);
   setLastUpdate();
+  state.lastRefreshTime = Date.now();
 }
 
 // Update sliding indicator position
@@ -540,6 +542,24 @@ themeToggle.addEventListener('change', () => {
 setInterval(() => {
   $('#local-time').textContent = new Date().toLocaleString();
 }, 1000);
+
+// Pause auto-refresh when tab is hidden to reduce API calls
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // Tab is hidden - pause refresh
+    if (state.refreshTimerId) clearInterval(state.refreshTimerId);
+  } else {
+    // Tab is visible again
+    const timeSinceLastRefresh = Date.now() - (state.lastRefreshTime || 0);
+    
+    // Only refresh if 30+ seconds have passed since last update
+    if (timeSinceLastRefresh >= 30000) {
+      refreshAll();
+    }
+    // Always restart the auto-refresh interval
+    startFixedRefresh();
+  }
+});
 
 (function init() {
   try {
