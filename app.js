@@ -214,10 +214,12 @@ let state = {
   stop: null,
   refreshTimerId: null,
   lastRefreshTime: null,
+  allDepartures: [], // Cache all 60min departures
 };
 
 function selectStop(stop) {
   state.stop = stop;
+  state.allDepartures = []; // Clear cache when selecting new stop
   const badge = $('#departures-stop');
   if (badge) {
     badge.innerHTML = `
@@ -239,20 +241,35 @@ async function fetchJSON(url) {
   return data;
 }
 
-async function loadDepartures(stopId, duration) {
+async function loadDepartures(stopId, duration, forceRefresh = false) {
   setHidden($('#departures-loading'), false);
   setHidden($('#departures-empty'), true);
-  const url = `${API_BASE}/stops/${encodeURIComponent(stopId)}/departures?duration=${duration}&remarks=true&language=en&pretty=false`;
-  try {
-    const list = await fetchJSON(url);
-    const items = Array.isArray(list) ? list : list?.departures || list?.results || [];
-    items.sort((a, b) => new Date(a.plannedWhen || a.when || 0) - new Date(b.plannedWhen || b.when || 0));
-    renderDepartures(items);
-  } catch (e) {
-    showToast('Failed to load departures', 'error');
-  } finally {
-    setHidden($('#departures-loading'), true);
+  
+  // Always fetch 60 minutes of data, only make API call if forced or cache is empty
+  if (forceRefresh || state.allDepartures.length === 0) {
+    const url = `${API_BASE}/stops/${encodeURIComponent(stopId)}/departures?duration=60&remarks=true&language=en&pretty=false`;
+    try {
+      const list = await fetchJSON(url);
+      const items = Array.isArray(list) ? list : list?.departures || list?.results || [];
+      items.sort((a, b) => new Date(a.plannedWhen || a.when || 0) - new Date(b.plannedWhen || b.when || 0));
+      state.allDepartures = items;
+    } catch (e) {
+      showToast('Failed to load departures', 'error');
+      setHidden($('#departures-loading'), true);
+      return;
+    }
   }
+  
+  // Filter departures based on selected duration
+  const now = Date.now();
+  const maxTime = now + (duration * 60 * 1000);
+  const filteredItems = state.allDepartures.filter(item => {
+    const departureTime = new Date(item.when || item.plannedWhen).getTime();
+    return departureTime <= maxTime;
+  });
+  
+  renderDepartures(filteredItems);
+  setHidden($('#departures-loading'), true);
 }
 
 function renderDepartures(items) {
@@ -491,7 +508,7 @@ async function refreshAll() {
   }
   const activeTab = $('#duration-tabs .tab.tab-active');
   const duration = activeTab ? Number(activeTab.getAttribute('data-minutes')) : 30;
-  await loadDepartures(state.stop.id, duration);
+  await loadDepartures(state.stop.id, duration, true); // Force refresh on auto-refresh
   setLastUpdate();
   state.lastRefreshTime = Date.now();
 }
@@ -511,13 +528,18 @@ function updateTabIndicator() {
   container.style.setProperty('--indicator-width', `${width}px`);
 }
 
-$('#duration-tabs')?.addEventListener('click', (e) => {
+$('#duration-tabs')?.addEventListener('click', async (e) => {
   const t = e.target.closest('.tab');
   if (!t) return;
   $$('#duration-tabs .tab').forEach((el) => el.classList.remove('tab-active'));
   t.classList.add('tab-active');
   updateTabIndicator();
-  refreshAll();
+  
+  // Just filter cached data, don't make API call
+  if (state.stop) {
+    const duration = Number(t.getAttribute('data-minutes'));
+    await loadDepartures(state.stop.id, duration, false); // false = use cache
+  }
 });
 $('#refresh-now').addEventListener('click', refreshAll);
 
