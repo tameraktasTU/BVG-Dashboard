@@ -19,6 +19,7 @@
 - **Nearby stops** via geolocation with distance display (when permitted)
 - **Clean departures board** — mobile‑optimized, compact, and accessible
 - **Time window tabs** (15m · 30m · 60m) with smooth sliding animation
+- **Live Radar** — real-time vehicle tracking on interactive map showing all vehicles from your 60-minute departure window
 - **Line overview modal** — click any departure to see full route with stopovers
 - **Smart delay badges** — color-coded indicators showing real-time delays
 - **Optimized API calls** — visibility-based auto-refresh, client-side filtering, and caching
@@ -39,6 +40,7 @@ Tip: If your browser blocks location, click the 📍 button after granting permi
 - **Search**: Type to search for a stop, then select from the dropdown (Enter or click)
 - **Nearby**: Click the 📍 button to find and list stops near your location
 - **Time window**: Select 15, 30, or 60 minutes — preference is saved automatically
+- **Radar**: Click the 🎯 Radar button to view live vehicle positions on an interactive map
 - **View route**: Click on any departure to see the complete journey with all stopovers
 - **Refresh**: Click the refresh button or wait for automatic 30-second updates
 - **Theme**: Toggle light/dark mode in the top right — your choice persists across sessions
@@ -49,6 +51,7 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 
 - **Real-time departures** with delay information
 - **Journey details** with complete stopover sequences
+- **Live vehicle positions** via radar endpoint
 - **Location-based search** for nearby transit stops
 - **Comprehensive stop database** across Berlin/Brandenburg
 
@@ -81,6 +84,7 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 │                   #   - API integration and optimization
 │                   #   - Search and geolocation features
 │                   #   - Departure rendering and modal system
+│                   #   - Live radar with vehicle tracking
 │                   #   - Theme management and persistence
 └── README.md       # This file
 ```
@@ -90,6 +94,7 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 
 **Data**: [BVG Transport REST API v6](https://v6.bvg.transport.rest) by [transport.rest](https://transport.rest)  
 **Styling**: [Tailwind CSS v4](https://tailwindcss.com) + [daisyUI v5](https://daisyui.com)  
+**Maps**: [Leaflet v1.9.4](https://leafletjs.com) with OpenStreetMap & CartoDB tiles  
 **Icons**: Native emoji and Unicode characters
 
 **Created by [Tamer Aktas](https://tameraktas.de)** • 2025
