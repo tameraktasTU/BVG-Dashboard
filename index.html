@@ -141,7 +141,6 @@
             </div>
           </div>
 
-          <!-- Update Status -->
           <div class="flex justify-between items-center lg:flex-col lg:gap-2 lg:items-end lg:justify-end">
             <div class="text-xs opacity-70">Auto refresh: every 30s</div>
             <div class="text-xs opacity-70">
@@ -259,10 +258,8 @@
   <dialog id="radar-modal" class="modal">
     <div class="modal-box max-w-6xl w-full h-[75vh] max-h-[75vh] flex flex-col p-0 relative">
       
-      <!-- Hidden autofocus element to prevent close button from being focused -->
       <div tabindex="-1" autofocus class="sr-only"></div>
       
-      <!-- Close Button (Top Right) -->
       <form method="dialog" class="absolute top-4 right-4 z-[1001]">
         <button class="btn btn-sm btn-circle btn-ghost bg-base-100 shadow-lg" aria-label="Close radar">
           ✕
@@ -317,8 +314,7 @@
             </div>
           </div>
         </div>
-        
-        <!-- Title (Top Center) -->
+
         <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-base-100 rounded-lg shadow-lg px-4 py-2 z-[1000]">
           <div class="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary">
@@ -329,8 +325,7 @@
             <span class="font-bold text-sm">Live Radar</span>
           </div>
         </div>
-        
-        <!-- Recenter Button (Bottom Right) -->
+
         <div class="absolute bottom-8 right-4 bg-base-100 rounded-lg shadow-lg p-2 z-[1000]">
           <button id="radar-recenter" class="btn btn-sm btn-square" aria-label="Recenter map">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
@@ -339,8 +334,6 @@
             </svg>
           </button>
         </div>
-        
-        <!-- Vehicle Count (removed from old position) -->
       </div>
       
     </div>
