@@ -261,7 +261,7 @@
       <div tabindex="-1" autofocus class="sr-only"></div>
       
       <form method="dialog" class="absolute top-4 right-4 z-[1001]">
-        <button class="btn btn-sm btn-circle btn-ghost bg-base-100 shadow-lg" aria-label="Close radar">
+        <button class="btn btn-square btn-ghost bg-base-100 shadow-lg h-10 w-10 min-h-10" aria-label="Close radar">
           ✕
         </button>
       </form>
@@ -315,7 +315,7 @@
           </div>
         </div>
 
-        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-base-100 rounded-lg shadow-lg px-4 py-2 z-[1000]">
+        <div class="absolute top-4 left-1/2 transform -translate-x-1/2 bg-base-100 rounded-lg shadow-lg h-10 px-4 z-[1000] flex items-center">
           <div class="flex items-center gap-2">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-primary">
               <circle cx="12" cy="12" r="10"/>
@@ -326,14 +326,12 @@
           </div>
         </div>
 
-        <div class="absolute bottom-8 right-4 bg-base-100 rounded-lg shadow-lg p-2 z-[1000]">
-          <button id="radar-recenter" class="btn btn-sm btn-square" aria-label="Recenter map">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4">
-              <circle cx="12" cy="12" r="10"/>
-              <circle cx="12" cy="12" r="3"/>
-            </svg>
-          </button>
-        </div>
+        <button id="radar-recenter" class="absolute bottom-8 right-4 btn btn-square shadow-lg z-[1000]" aria-label="Recenter map">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+            <circle cx="12" cy="12" r="10"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
+        </button>
       </div>
       
     </div>
