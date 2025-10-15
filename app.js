@@ -736,10 +736,10 @@ const radarState = {
 
 const RADAR_CONFIG = {
   DEFAULT_ZOOM: 14,
-  SEARCH_RADIUS: 0.225, // Fixed search radius (25km)
-  MAX_RESULTS: 256,
+  SEARCH_RADIUS: 0.09, // Fixed search radius (~10km)
+  MAX_RESULTS: 1024,
   MAP_INIT_DELAY: 100,
-  REFRESH_INTERVAL: 10000 // Update vehicles every 10 seconds
+  REFRESH_INTERVAL: 10000
 };
 
 // Extract hex colors from PRODUCT_COLORS for use in SVG markers
@@ -880,22 +880,18 @@ const createVehiclePopupContent = (vehicle) => {
   const productType = vehicle.line?.product || 'Vehicle';
   const displayName = getProductDisplayName(productType);
   const color = getVehicleColor(productType, lineName);
-  
-  // Get destination
+
   const lastStopover = vehicle.nextStopovers?.[vehicle.nextStopovers.length - 1];
   const destination = lastStopover?.stop?.name || 'In Service';
-  
-  // Get actual next stop (not current stop)
+
   const nextStopover = getUpcomingStopover(vehicle);
   const nextStop = nextStopover?.stop?.name;
   const nextStopTime = nextStopover?.arrival || nextStopover?.plannedArrival 
     ? fmtTime(nextStopover.arrival || nextStopover.plannedArrival)
     : null;
-  
-  // Get current speed (if available)
+
   const speed = vehicle.speed ? `${Math.round(vehicle.speed)} km/h` : null;
-  
-  // Get delay information for the next stop
+
   const delay = nextStopover?.arrivalDelay || nextStopover?.departureDelay;
   const delayMins = delay != null ? Math.round(delay / 60) : null;
   const delayBadge = delayMins != null && delayMins !== 0
@@ -1104,7 +1100,6 @@ const fetchRadarData = async (showLoading = true) => {
       return;
     }
     
-    // Fetch radar data with fixed 25km radius
     const { latitude: lat, longitude: lon } = stop.location;
     const radius = RADAR_CONFIG.SEARCH_RADIUS;
     
@@ -1117,8 +1112,7 @@ const fetchRadarData = async (showLoading = true) => {
     
     const data = await response.json();
     const allVehicles = Array.isArray(data) ? data : (data.movements || []);
-    
-    // Filter vehicles by matching tripIds
+
     const matchedVehicles = filterVehiclesByTripIds(allVehicles, tripIds);
     
     radarState.vehicles = matchedVehicles;
@@ -1173,12 +1167,11 @@ const openRadarModal = async () => {
 };
 
 const startRadarAutoRefresh = () => {
-  // Clear any existing timer
+
   if (radarState.refreshTimerId) {
     clearInterval(radarState.refreshTimerId);
   }
-  
-  // Start auto-refresh every 10 seconds (without showing loading indicator)
+
   radarState.refreshTimerId = setInterval(async () => {
     await fetchRadarData(false);
   }, RADAR_CONFIG.REFRESH_INTERVAL);
@@ -1199,7 +1192,6 @@ const recenterRadar = () => {
 };
 
 const closeRadarModal = () => {
-  // Stop auto-refresh when modal is closed
   stopRadarAutoRefresh();
 };
 
@@ -1215,7 +1207,6 @@ $('#radar-modal')?.addEventListener('close', closeRadarModal);
 document.addEventListener('visibilitychange', handleVisibilityChange);
 window.addEventListener('resize', updateTabIndicator);
 
-// Update local time display every second
 setInterval(() => {
   $('#local-time').textContent = new Date().toLocaleString();
 }, 1000);
