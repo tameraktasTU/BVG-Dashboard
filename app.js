@@ -1216,18 +1216,6 @@ setInterval(() => {
 // ============================================================================
 
 (function init() {
-  // Restore previously selected stop from localStorage
-  try {
-    const savedStop = JSON.parse(localStorage.getItem('selectedStop') || 'null');
-    if (savedStop) {
-      selectStop(savedStop);
-      $('#search').value = savedStop.name;
-    }
-  } catch (e) {
-    console.error('Failed to restore saved stop:', e);
-  }
-  
-  // Restore previously selected time window from localStorage
   try {
     const savedDuration = localStorage.getItem('selectedDuration');
     if (savedDuration) {
@@ -1241,6 +1229,16 @@ setInterval(() => {
     console.error('Failed to restore saved duration:', e);
   }
   
+  try {
+    const savedStop = JSON.parse(localStorage.getItem('selectedStop') || 'null');
+    if (savedStop) {
+      selectStop(savedStop);
+      $('#search').value = savedStop.name;
+    }
+  } catch (e) {
+    console.error('Failed to restore saved stop:', e);
+  }
+  
   // Initialize theme
   initTheme();
   
@@ -1251,5 +1249,5 @@ setInterval(() => {
   $('#local-time').textContent = new Date().toLocaleString();
   
   // Initialize tab indicator position
-  updateTabIndicator();
+  requestAnimationFrame(updateTabIndicator);
 })();
