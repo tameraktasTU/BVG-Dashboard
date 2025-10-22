@@ -19,12 +19,13 @@
 - **Nearby stops** via geolocation with distance display (when permitted)
 - **Clean departures board** — mobile‑optimized, compact, and accessible
 - **Time window tabs** (15m · 30m · 60m) with smooth sliding animation
+- **Journey planner** — search routes between any two stops with real-time delay info and visual timeline
 - **Live Radar** — real-time vehicle tracking on interactive map showing all vehicles from your 60-minute departure window
 - **Line overview modal** — click any departure to see full route with stopovers
-- **Smart delay badges** — color-coded indicators showing real-time delays
+- **Smart delays** — visual indicators for late, early, or on-time departures
 - **Optimized API calls** — visibility-based auto-refresh, client-side filtering, and caching
 - **Dark/Light theme** toggle with persistence
-- **Local storage** — remembers your stop and time window preferences
+- **Local storage** — remembers your stop, journey locations, and time window preferences
 - **Pure HTML + JS + CSS** over CDNs — zero build tools, instant deployment
 
 ## 🚀 Quick Start
@@ -40,6 +41,7 @@ Tip: If your browser blocks location, click the 📍 button after granting permi
 - **Search**: Type to search for a stop, then select from the dropdown (Enter or click)
 - **Nearby**: Click the 📍 button to find and list stops near your location
 - **Time window**: Select 15, 30, or 60 minutes — preference is saved automatically
+- **Journey planner**: Use the "Journeys" tab to search routes between two stops with real-time delays and visual timeline
 - **Radar**: Click the 🎯 Radar button to view live vehicle positions on an interactive map
 - **View route**: Click on any departure to see the complete journey with all stopovers
 - **Refresh**: Click the refresh button or wait for automatic 30-second updates
@@ -62,7 +64,9 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 - **LocalStorage persistence**:
   - Selected stop and station name
   - Time window preference (15/30/60 min)
+  - Journey origin and destination (auto-restored when searching)
   - Theme choice (light/dark)
+  - Current active view (Departures/Journeys/Settings)
 - **Accessibility**: ARIA labels and semantic HTML throughout
 - **Local time**: Updates every second in the footer
 
@@ -84,6 +88,7 @@ Powered by **BVG Transport REST API v6** (`v6.bvg.transport.rest`)
 │                   #   - API integration and optimization
 │                   #   - Search and geolocation features
 │                   #   - Departure rendering and modal system
+│                   #   - Journey planner with route visualization
 │                   #   - Live radar with vehicle tracking
 │                   #   - Theme management and persistence
 └── README.md       # This file
