@@ -48,6 +48,12 @@ const state = {
   refreshTimerId: null,
   lastRefreshTime: null,
   allDepartures: [], // Cached 60-minute departure data
+  currentView: 'journey', // 'departures', 'journey', 'settings'
+  journey: {
+    origin: null,
+    destination: null,
+    journeys: [],
+  }
 };
 
 // ============================================================================
@@ -374,10 +380,10 @@ const loadDepartures = async (stopId, duration, forceRefresh = false) => {
       const list = await fetchJSON(url);
       const items = Array.isArray(list) ? list : (list?.departures || list?.results || []);
       
-      // Sort by planned departure time
+      // Sort by actual departure time (when), fallback to planned time
       items.sort((a, b) => {
-        const timeA = new Date(a.plannedWhen || a.when || 0).getTime();
-        const timeB = new Date(b.plannedWhen || b.when || 0).getTime();
+        const timeA = new Date(a.when || a.plannedWhen || 0).getTime();
+        const timeB = new Date(b.when || b.plannedWhen || 0).getTime();
         return timeA - timeB;
       });
       
@@ -417,26 +423,39 @@ const renderDepartures = (items) => {
   
   items.forEach(departure => {
     const delay = departure.delay ?? computeDelaySecs(departure.when, departure.plannedWhen);
-    const delayBadge = renderDelayBadge(delay);
+    const hasDelayData = delay !== null;
+    const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
+    
+    // Planned time (with strikethrough if delayed)
+    const plannedTimeDisplay = hasSignificantDelay
+      ? `<span class="line-through opacity-40">${fmtTime(departure.plannedWhen)}</span>`
+      : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
+    
+    // Actual time (color-coded based on delay status)
+    const actualTimeDisplay = hasDelayData
+      ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">
+           ${hasSignificantDelay ? fmtTime(departure.when) : fmtTime(departure.plannedWhen || departure.when)}
+         </span>`
+      : `<span>—</span>`;
     
     const tr = document.createElement('tr');
     tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
     tr.innerHTML = `
-      <td class="font-mono p-2 md:p-3 text-[0.92rem] md:text-base">
-        ${fmtTime(departure.when || departure.plannedWhen)}
+      <td class="font-mono px-2 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
+        ${plannedTimeDisplay}
       </td>
-      <td class="p-2 md:p-3 text-[0.92rem] md:text-base">
+      <td class="font-mono px-1 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
+        ${actualTimeDisplay}
+      </td>
+      <td class="px-2 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
         <div class="flex items-center gap-0.5 md:gap-2">
           <span class="badge badge-xs md:badge-sm ${productBadgeClass(departure.line)} whitespace-nowrap">
             ${departure.line?.name || departure.line?.id || '?'}
           </span>
         </div>
       </td>
-      <td class="truncate max-w-[8rem] md:max-w-none p-2 md:p-3 text-[0.92rem] md:text-base">
+      <td class="truncate max-w-[8rem] md:max-w-none px-2 md:px-3 py-2 md:py-3 text-[0.92rem] md:text-base">
         ${departure.direction || '—'}
-      </td>
-      <td class="text-right whitespace-nowrap p-2 md:p-3 text-[0.92rem] md:text-base">
-        ${delayBadge}
       </td>
     `;
     
@@ -1196,58 +1215,704 @@ const closeRadarModal = () => {
 };
 
 // ============================================================================
+// DOCK NAVIGATION
+// ============================================================================
+
+const switchView = (viewName) => {
+  state.currentView = viewName;
+  
+  // View configuration map
+  const views = {
+    departures: { element: $('#departures-view'), onShow: () => {
+      setTimeout(() => requestAnimationFrame(updateTabIndicator), 0);
+    }},
+    journey: { element: $('#journey-view') },
+    settings: { element: $('#settings-view') }
+  };
+  
+  // Hide all views and show selected one
+  Object.entries(views).forEach(([name, config]) => {
+    const isActive = name === viewName;
+    setHidden(config.element, !isActive);
+    if (isActive && config.onShow) {
+      config.onShow();
+    }
+  });
+  
+  // Update dock buttons
+  $$('.dock button').forEach(btn => btn.classList.remove('dock-active'));
+  $(`#dock-${viewName}`)?.classList.add('dock-active');
+  
+  localStorage.setItem('currentView', viewName);
+};
+
+// ============================================================================
+// JOURNEY SEARCH
+// ============================================================================
+
+const journeySearchState = {
+  origin: { prevValue: '', suppressBlur: false, abort: null },
+  destination: { prevValue: '', suppressBlur: false, abort: null }
+};
+
+const setupJourneyInputListeners = (input, resultsBox, fieldState, isOrigin) => {
+  if (!input || !resultsBox) return;
+  
+  input.addEventListener('input', debounce(() => {
+    if (fieldState.abort) fieldState.abort.abort();
+    const controller = new AbortController();
+    fieldState.abort = controller;
+    searchJourneyStops(input.value, resultsBox, controller);
+  }, SEARCH_DEBOUNCE_MS));
+
+  input.addEventListener('focus', () => {
+    fieldState.prevValue = input.value;
+    input.value = '';
+  });
+
+  input.addEventListener('blur', () => {
+    if (fieldState.suppressBlur) return;
+    if (!input.value.trim()) {
+      input.value = fieldState.prevValue;
+    }
+    resultsBox.classList.add('hidden');
+  });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      e.stopPropagation();
+      input.value = fieldState.prevValue;
+      resultsBox.classList.add('hidden');
+      input.blur();
+    }
+  });
+
+  resultsBox.addEventListener('mousedown', () => { fieldState.suppressBlur = true; });
+  resultsBox.addEventListener('mouseup', () => { 
+    setTimeout(() => { fieldState.suppressBlur = false; }, 0); 
+  });
+};
+
+const setupJourneySearchListeners = () => {
+  const journeyOriginInput = $('#journey-origin');
+  const journeyDestinationInput = $('#journey-destination');
+  const journeyOriginResults = $('#journey-origin-results');
+  const journeyDestinationResults = $('#journey-destination-results');
+  
+  if (!journeyOriginInput || !journeyDestinationInput) return;
+  
+  setupJourneyInputListeners(journeyOriginInput, journeyOriginResults, journeySearchState.origin, true);
+  setupJourneyInputListeners(journeyDestinationInput, journeyDestinationResults, journeySearchState.destination, false);
+};
+
+const searchJourneyStops = async (query, resultsBox, controller) => {
+  const trimmedQuery = query?.trim();
+  
+  if (!trimmedQuery || trimmedQuery.length < 2) {
+    resultsBox.classList.add('hidden');
+    resultsBox.innerHTML = '';
+    return;
+  }
+  
+  const url = `${API_BASE}/locations?query=${encodeURIComponent(trimmedQuery)}&results=8&stops=true&addresses=true&poi=true&language=en&pretty=false`;
+  resultsBox.innerHTML = '<progress class="progress w-full"></progress>';
+  resultsBox.classList.remove('hidden');
+  
+  try {
+    const res = await fetch(url, { 
+      signal: controller.signal, 
+      headers: { accept: 'application/json' } 
+    });
+    
+    if (!res.ok) throw new Error('Search failed');
+    
+    const items = await res.json();
+    renderJourneySearchResults(items, resultsBox);
+  } catch (e) {
+    if (controller.signal.aborted) return;
+    resultsBox.innerHTML = '';
+    resultsBox.classList.add('hidden');
+    showToast('Search error. Try again.', 'error');
+  }
+};
+
+const handleJourneyLocationSelect = (location, isOrigin, input, resultsBox, fieldState, nextFocusElement) => {
+  if (isOrigin) {
+    state.journey.origin = location;
+  } else {
+    state.journey.destination = location;
+  }
+  
+  resultsBox.classList.add('hidden');
+  resultsBox.innerHTML = '';
+  input.value = location.name;
+  fieldState.prevValue = location.name;
+  fieldState.suppressBlur = false;
+  input.blur();
+  
+  setTimeout(() => {
+    if (document.activeElement === input) {
+      nextFocusElement?.focus();
+    }
+  }, 0);
+};
+
+const renderJourneySearchResults = (locations, resultsBox) => {
+  if (!locations.length) {
+    resultsBox.innerHTML = '<div class="p-3 text-sm opacity-70">No results</div>';
+    return;
+  }
+  
+  resultsBox.innerHTML = '';
+  const ul = document.createElement('ul');
+  ul.className = 'menu bg-base-200 rounded-box';
+  
+  const journeyOriginResults = $('#journey-origin-results');
+  const journeyOriginInput = $('#journey-origin');
+  const journeyDestinationInput = $('#journey-destination');
+  const isOrigin = resultsBox === journeyOriginResults;
+  
+  const currentInput = isOrigin ? journeyOriginInput : journeyDestinationInput;
+  const fieldState = isOrigin ? journeySearchState.origin : journeySearchState.destination;
+  const nextFocus = isOrigin ? journeyDestinationInput : $('#journey-search-btn');
+  
+  locations.forEach(location => {
+    const li = document.createElement('li');
+    li.innerHTML = `
+      <a class="justify-between">
+        <span><span class="font-medium">${location.name}</span></span>
+      </a>
+    `;
+    
+    li.addEventListener('click', () => {
+      handleJourneyLocationSelect(location, isOrigin, currentInput, resultsBox, fieldState, nextFocus);
+    });
+    
+    ul.appendChild(li);
+  });
+  
+  resultsBox.appendChild(ul);
+};
+
+const findNearbyForJourney = async () => {
+  if (!('geolocation' in navigator)) {
+    showToast('Geolocation not supported', 'warning');
+    return;
+  }
+  
+  const journeyOriginResults = $('#journey-origin-results');
+  if (!journeyOriginResults) return;
+  
+  journeyOriginResults.classList.remove('hidden');
+  journeyOriginResults.innerHTML = '<div class="p-3">Locating… <progress class="progress w-24 ml-2"></progress></div>';
+  
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      try {
+        const { latitude, longitude } = pos.coords;
+        const url = `${API_BASE}/locations/nearby?latitude=${latitude}&longitude=${longitude}&results=8&stops=true&poi=false&language=en&pretty=false`;
+        const res = await fetch(url, { headers: { accept: 'application/json' } });
+        
+        if (!res.ok) throw new Error('Nearby search failed');
+        
+        const items = await res.json();
+        renderJourneySearchResults(items, journeyOriginResults);
+      } catch (e) {
+        showToast('Failed to fetch nearby stops', 'error');
+        journeyOriginResults.classList.add('hidden');
+        journeyOriginResults.innerHTML = '';
+      }
+    },
+    () => {
+      showToast('Location permission denied', 'warning');
+      journeyOriginResults.classList.add('hidden');
+      journeyOriginResults.innerHTML = '';
+    },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+  );
+};
+
+// ============================================================================
+// JOURNEY API
+// ============================================================================
+
+const searchJourneys = async () => {
+  if (!state.journey.origin || !state.journey.destination) {
+    showToast('Please select both origin and destination', 'warning');
+    return;
+  }
+  
+  setHidden($('#journey-empty'), true);
+  setHidden($('#journey-error'), true);
+  setHidden($('#journey-loading'), false);
+  $('#journeys-list').innerHTML = '';
+  
+  try {
+    const fromId = state.journey.origin.id || `${state.journey.origin.latitude},${state.journey.origin.longitude}`;
+    const toId = state.journey.destination.id || `${state.journey.destination.latitude},${state.journey.destination.longitude}`;
+    
+    const params = new URLSearchParams({
+      results: '5',
+      stopovers: 'true',
+      remarks: 'true',
+      language: 'en',
+      pretty: 'false',
+      scheduledDays: 'false'
+    });
+    
+    // Get departure time from time picker
+    const timePicker = $('#journey-time-picker');
+    if (timePicker && timePicker.value) {
+      const now = new Date();
+      const [hours, minutes] = timePicker.value.split(':');
+      const departureDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), parseInt(hours), parseInt(minutes));
+      
+      params.append('departure', departureDate.toISOString());
+    } else {
+      params.append('departure', 'now');
+    }
+    
+    const url = `${API_BASE}/journeys?from=${encodeURIComponent(fromId)}&to=${encodeURIComponent(toId)}&${params.toString()}`;
+    const data = await fetchJSON(url);
+    
+    const journeys = data.journeys || [];
+    state.journey.journeys = journeys;
+    
+    setHidden($('#journey-loading'), true);
+    
+    if (journeys.length === 0) {
+      $('#journey-error-msg').textContent = 'No journeys found. Try different locations or times.';
+      setHidden($('#journey-error'), false);
+      return;
+    }
+    
+    renderJourneys(journeys);
+  } catch (e) {
+    console.error('Journey search failed:', e);
+    setHidden($('#journey-loading'), true);
+    $('#journey-error-msg').textContent = 'Failed to load journeys. Please try again.';
+    setHidden($('#journey-error'), false);
+  }
+};
+
+const renderJourneys = (journeys) => {
+  const container = $('#journeys-list');
+  container.innerHTML = '';
+  
+  journeys.forEach((journey, index) => {
+    const card = createJourneyCard(journey, index);
+    container.appendChild(card);
+  });
+};
+
+const createJourneyCard = (journey, index) => {
+  const card = document.createElement('div');
+  card.className = 'journey-card collapsed card bg-base-100 shadow-elevated';
+  card.dataset.index = index;
+  
+  const firstLeg = journey.legs[0];
+  const lastLeg = journey.legs[journey.legs.length - 1];
+  
+  const departureTime = firstLeg?.departure || firstLeg?.plannedDeparture;
+  const plannedDepartureTime = firstLeg?.plannedDeparture;
+  const arrivalTime = lastLeg?.arrival || lastLeg?.plannedArrival;
+  const plannedArrivalTime = lastLeg?.plannedArrival;
+  
+  // Calculate departure delay
+  const departureDelay = firstLeg?.departureDelay ?? computeDelaySecs(firstLeg?.departure, firstLeg?.plannedDeparture);
+  const arrivalDelay = lastLeg?.arrivalDelay ?? computeDelaySecs(lastLeg?.arrival, lastLeg?.plannedArrival);
+  
+  const duration = Math.round((new Date(arrivalTime) - new Date(departureTime)) / 60000);
+  const hours = Math.floor(duration / 60);
+  const minutes = duration % 60;
+  const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+  
+  // Count only non-walking legs, then subtract 1 for transfers
+  const transitLegs = journey.legs.filter(leg => leg.mode !== 'walking' && leg.line);
+  const transfers = Math.max(0, transitLegs.length - 1);
+  
+  // Check if any leg has a delay
+  const hasDelays = journey.legs.some(leg => {
+    const depDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
+    const arrDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
+    return (depDelay !== null && Math.abs(depDelay) >= 60) || (arrDelay !== null && Math.abs(arrDelay) >= 60);
+  });
+  
+  const lineBadges = journey.legs
+    .filter(leg => leg.line)
+    .map((leg, idx, arr) => {
+      const lineName = leg.line.name || leg.line.id || '?';
+      const badgeClass = productBadgeClass(leg.line);
+      const badge = `<div class="badge ${badgeClass} badge-sm gap-1">${lineName}</div>`;
+      const arrow = idx < arr.length - 1 ? '<span class="opacity-40 text-sm mx-0.5">›</span>' : '';
+      return badge + arrow;
+    })
+    .join('');
+  
+  card.innerHTML = `
+    <div class="card-body p-4 sm:p-5">
+      <div class="flex items-center justify-between gap-3 mb-4">
+        <div class="flex items-center gap-3 min-w-0 flex-1 flex-wrap">
+          <div class="flex items-center gap-2">
+            ${departureDelay !== null && Math.abs(departureDelay) >= 60 ? `
+              <div class="text-xl font-bold tabular-nums line-through opacity-40">${fmtTime(firstLeg?.plannedDeparture || departureTime)}</div>
+              <div class="text-xl font-bold tabular-nums ${departureDelay > 0 ? 'text-error' : departureDelay < 0 ? 'text-info' : 'text-success'}">${fmtTime(departureTime)}</div>
+            ` : `
+              <div class="text-xl font-bold tabular-nums">${fmtTime(departureTime)}</div>
+            `}
+          </div>
+          <svg class="w-5 h-5 opacity-30 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
+          <div class="flex items-center gap-2">
+            ${arrivalDelay !== null && Math.abs(arrivalDelay) >= 60 ? `
+              <div class="text-xl font-bold tabular-nums line-through opacity-40">${fmtTime(lastLeg?.plannedArrival || arrivalTime)}</div>
+              <div class="text-xl font-bold tabular-nums ${arrivalDelay > 0 ? 'text-error' : arrivalDelay < 0 ? 'text-info' : 'text-success'}">${fmtTime(arrivalTime)}</div>
+            ` : `
+              <div class="text-xl font-bold tabular-nums">${fmtTime(arrivalTime)}</div>
+            `}
+          </div>
+        </div>
+        
+        <button class="btn btn-ghost btn-circle btn-sm journey-expand-btn flex-shrink-0" aria-label="Toggle details">
+          <svg class="w-5 h-5 journey-expand-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="flex items-center gap-2 flex-wrap mb-3">
+        <div class="badge badge-ghost gap-1.5">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke-width="2"/>
+            <path stroke-width="2" stroke-linecap="round" d="M12 6v6l4 2"/>
+          </svg>
+          ${durationStr}
+        </div>
+        ${transfers > 0 ? `<div class="badge badge-ghost gap-1.5">${transfers} ${transfers > 1 ? 'transfers' : 'transfer'}</div>` : '<div class="badge badge-ghost">Direct</div>'}
+      </div>
+
+      <div class="flex items-center gap-1.5 flex-wrap">
+        ${lineBadges}
+      </div>
+      
+      <div class="journey-details">
+        ${renderJourneyLegs(journey.legs)}
+      </div>
+    </div>
+  `;
+  
+  card.querySelector('.journey-expand-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    card.classList.toggle('collapsed');
+    card.classList.toggle('expanded');
+  });
+  
+  return card;
+};
+
+const renderJourneyLegs = (legs) => {
+  return `<div class="mt-5 pt-5 border-t border-base-300">
+    ${legs.map((leg, index) => {
+      const isWalking = leg.mode === 'walking' || !leg.line;
+      const departureTime = leg.departure || leg.plannedDeparture;
+      const arrivalTime = leg.arrival || leg.plannedArrival;
+      const isLastLeg = index === legs.length - 1;
+      
+      if (isWalking) {
+        // Check if this is a transfer
+        const prevLeg = index > 0 ? legs[index - 1] : null;
+        const nextLeg = index < legs.length - 1 ? legs[index + 1] : null;
+        const isTransfer = (prevLeg && (prevLeg.mode !== 'walking' && prevLeg.line)) && 
+                          (nextLeg && (nextLeg.mode !== 'walking' && nextLeg.line));
+        
+        if (isTransfer) {
+          // Calculate transfer time from previous leg's arrival to next leg's departure
+          let duration = 0;
+          const prevArrival = prevLeg.arrival || prevLeg.plannedArrival;
+          const nextDeparture = nextLeg.departure || nextLeg.plannedDeparture;
+          
+          if (prevArrival && nextDeparture) {
+            duration = Math.round((new Date(nextDeparture) - new Date(prevArrival)) / 60000);
+          }
+          
+          // Compact transfer view - always show duration if available
+          return `
+            <div class="flex items-center gap-3 pb-2 ${!isLastLeg ? 'mb-4 pb-4 border-b border-base-200' : ''}">
+              <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
+                <div class="w-0.5 h-6 bg-base-300"></div>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="badge badge-ghost badge-sm gap-1.5 opacity-60">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                  </svg>
+                  Transfer (${duration > 0 ? duration + ' min' : '—'})
+                </div>
+              </div>
+            </div>
+          `;
+        }
+        
+        // For non-transfer walking legs, calculate their own duration
+        let duration = 0;
+        if (departureTime && arrivalTime) {
+          const depTime = new Date(departureTime);
+          const arrTime = new Date(arrivalTime);
+          duration = Math.round((arrTime - depTime) / 60000);
+        }
+        
+        // Full walking view for non-transfer walks
+        return `
+          <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
+            <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
+              <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: rgba(0,0,0,0.15);"></div>
+              <div class="w-0.5 flex-1 my-1" style="background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 4px, transparent 4px, transparent 8px); min-height: 40px;"></div>
+              <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: rgba(0,0,0,0.15);"></div>
+            </div>
+            
+            <div class="flex-1 min-w-0 -mt-1">
+              <div class="mb-3">
+                <div class="flex items-center gap-2 mb-1">
+                  <span class="text-xs font-semibold tabular-nums opacity-60">${fmtTime(departureTime)}</span>
+                  <div class="badge badge-info badge-xs gap-1">
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 17l-4 4m0 0l-4-4m4 4V3"/>
+                    </svg>
+                    Walk ${duration} min
+                  </div>
+                </div>
+                <div class="font-semibold text-sm">${leg.origin?.name || 'Start'}</div>
+              </div>
+
+              <div>
+                <div class="text-xs font-semibold tabular-nums opacity-60 mb-1">${fmtTime(arrivalTime)}</div>
+                <div class="font-semibold text-sm">${leg.destination?.name || 'End'}</div>
+              </div>
+            </div>
+          </div>
+        `;
+      }
+      
+      const lineName = leg.line?.name || leg.line?.id || '?';
+      const badgeClass = productBadgeClass(leg.line);
+      const direction = leg.direction || leg.destination?.name || '—';
+      const lineColor = extractLineColor(badgeClass);
+      
+      // Calculate delays
+      const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
+      const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
+      
+      // Calculate number of stops
+      const stopCount = leg.stopovers ? leg.stopovers.length : null;
+      const stopText = stopCount !== null && stopCount > 0 ? `${stopCount} stop${stopCount > 1 ? 's' : ''}` : '';
+      
+      return `
+        <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
+          <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
+            <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: ${lineColor};"></div>
+            <div class="flex-1 flex flex-col items-center my-1" style="min-height: 40px;">
+              <div class="w-0.5 flex-1" style="background-color: ${lineColor}; opacity: 0.4;"></div>
+              <div class="badge ${badgeClass} badge-xs my-1 px-1.5 py-2 min-h-0 h-auto">${lineName}</div>
+              <div class="w-0.5 flex-1" style="background-color: ${lineColor}; opacity: 0.4;"></div>
+            </div>
+            <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: ${lineColor};"></div>
+          </div>
+
+          <div class="flex-1 min-w-0 -mt-1">
+            <div class="mb-3">
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                ${departureDelay !== null && Math.abs(departureDelay) >= 60 ? `
+                  <span class="text-xs font-semibold tabular-nums opacity-40 line-through">${fmtTime(leg.plannedDeparture || departureTime)}</span>
+                  <span class="text-xs font-semibold tabular-nums ${departureDelay > 0 ? 'text-error' : departureDelay < 0 ? 'text-info' : 'text-success'}">${fmtTime(departureTime)}</span>
+                ` : `
+                  <span class="text-xs font-semibold tabular-nums opacity-60">${fmtTime(departureTime)}</span>
+                `}
+                ${stopText ? `<div class="badge badge-ghost badge-xs">${stopText}</div>` : ''}
+              </div>
+              <div class="font-semibold text-sm mb-0.5">${leg.origin?.name || 'Departure'}</div>
+              <div class="text-xs opacity-60 truncate">→ ${direction}</div>
+            </div>
+            
+            <div>
+              <div class="flex items-center gap-2 mb-1 flex-wrap">
+                ${arrivalDelay !== null && Math.abs(arrivalDelay) >= 60 ? `
+                  <span class="text-xs font-semibold tabular-nums opacity-40 line-through">${fmtTime(leg.plannedArrival || arrivalTime)}</span>
+                  <span class="text-xs font-semibold tabular-nums ${arrivalDelay > 0 ? 'text-error' : arrivalDelay < 0 ? 'text-info' : 'text-success'}">${fmtTime(arrivalTime)}</span>
+                ` : `
+                  <span class="text-xs font-semibold tabular-nums opacity-60">${fmtTime(arrivalTime)}</span>
+                `}
+              </div>
+              <div class="font-semibold text-sm">${leg.destination?.name || 'Arrival'}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('')}
+  </div>`;
+};
+
+$('#journey-search-btn')?.addEventListener('click', searchJourneys);
+$('#journey-use-location')?.addEventListener('click', findNearbyForJourney);
+
+// Time picker handlers
+const setCurrentTime = () => {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const timePicker = $('#journey-time-picker');
+  if (timePicker) {
+    timePicker.value = `${hours}:${minutes}`;
+  }
+};
+
+$('#journey-time-now')?.addEventListener('click', setCurrentTime);
+
+setCurrentTime();
+
+// ============================================================================
 // EVENT LISTENERS
 // ============================================================================
 
-$('#use-location').addEventListener('click', findNearbyStops);
-$('#refresh-now').addEventListener('click', refreshAll);
+$('#use-location')?.addEventListener('click', findNearbyStops);
+$('#refresh-now')?.addEventListener('click', refreshAll);
 $('#open-radar')?.addEventListener('click', openRadarModal);
 $('#radar-recenter')?.addEventListener('click', recenterRadar);
 $('#radar-modal')?.addEventListener('close', closeRadarModal);
+
+// Dock navigation
+$('#dock-departures')?.addEventListener('click', () => switchView('departures'));
+$('#dock-journey')?.addEventListener('click', () => switchView('journey'));
+$('#dock-settings')?.addEventListener('click', () => switchView('settings'));
+
+// Settings theme toggle
+$('#settings-theme-toggle')?.addEventListener('change', () => {
+  const themeToggle = $('#theme-toggle');
+  if (themeToggle) {
+    themeToggle.checked = $('#settings-theme-toggle').checked;
+    themeToggle.dispatchEvent(new Event('change'));
+  }
+});
+
 document.addEventListener('visibilitychange', handleVisibilityChange);
 window.addEventListener('resize', updateTabIndicator);
 
-setInterval(() => {
-  $('#local-time').textContent = new Date().toLocaleString();
-}, 1000);
+// ============================================================================
+// INITIALIZATION HELPERS
+// ============================================================================
+
+const getStoredJSON = (key, fallback = null) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item ? JSON.parse(item) : fallback;
+  } catch (e) {
+    console.error(`Failed to parse localStorage key "${key}":`, e);
+    return fallback;
+  }
+};
+
+const setActiveTab = (containerSelector, tabSelector) => {
+  const container = $(containerSelector);
+  if (!container) return;
+  
+  $$(containerSelector + ' .tab').forEach(el => el.classList.remove('tab-active'));
+  const tab = $(tabSelector);
+  if (tab) tab.classList.add('tab-active');
+};
+
+const syncThemeToggles = () => {
+  const headerToggle = $('#theme-toggle');
+  const settingsToggle = $('#settings-theme-toggle');
+  const themeLabel = $('#theme-label');
+  
+  if (headerToggle && settingsToggle) {
+    settingsToggle.checked = headerToggle.checked;
+    if (themeLabel) {
+      themeLabel.textContent = headerToggle.checked ? 'Dark Mode' : 'Light Mode';
+    }
+  }
+};
+
+const TAB_INDICATOR_DELAY = 50;
 
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
 
 (function init() {
-  try {
-    const savedDuration = localStorage.getItem('selectedDuration');
-    if (savedDuration) {
-      const tab = $(`#duration-tabs .tab[data-minutes="${savedDuration}"]`);
-      if (tab) {
-        $$('#duration-tabs .tab').forEach(el => el.classList.remove('tab-active'));
-        tab.classList.add('tab-active');
-      }
+  // Setup journey location property watchers FIRST
+  const saveJourneyLocations = () => {
+    if (state.journey.origin) {
+      localStorage.setItem('journeyOrigin', JSON.stringify(state.journey.origin));
     }
-  } catch (e) {
-    console.error('Failed to restore saved duration:', e);
+    if (state.journey.destination) {
+      localStorage.setItem('journeyDestination', JSON.stringify(state.journey.destination));
+    }
+  };
+  
+  Object.defineProperty(state.journey, 'origin', {
+    get() { return this._origin; },
+    set(value) {
+      this._origin = value;
+      saveJourneyLocations();
+    }
+  });
+  
+  Object.defineProperty(state.journey, 'destination', {
+    get() { return this._destination; },
+    set(value) {
+      this._destination = value;
+      saveJourneyLocations();
+    }
+  });
+  
+  // Setup journey search listeners
+  setupJourneySearchListeners();
+  
+  // Restore view preference
+  const savedView = localStorage.getItem('currentView') || 'journey';
+  switchView(savedView);
+  
+  // Restore duration tab
+  const savedDuration = localStorage.getItem('selectedDuration') || '30';
+  setActiveTab('#duration-tabs', `#duration-tabs .tab[data-minutes="${savedDuration}"]`);
+  
+  // Restore departure stop
+  const savedStop = getStoredJSON('selectedStop');
+  if (savedStop) {
+    selectStop(savedStop);
+    const searchInput = $('#search');
+    if (searchInput) searchInput.value = savedStop.name;
   }
   
-  try {
-    const savedStop = JSON.parse(localStorage.getItem('selectedStop') || 'null');
-    if (savedStop) {
-      selectStop(savedStop);
-      $('#search').value = savedStop.name;
-    }
-  } catch (e) {
-    console.error('Failed to restore saved stop:', e);
+  // Restore journey locations
+  const savedOrigin = getStoredJSON('journeyOrigin');
+  const savedDestination = getStoredJSON('journeyDestination');
+  const journeyOriginInput = $('#journey-origin');
+  const journeyDestinationInput = $('#journey-destination');
+  
+  if (savedOrigin && journeyOriginInput) {
+    state.journey.origin = savedOrigin;
+    journeyOriginInput.value = savedOrigin.name;
+    journeySearchState.origin.prevValue = savedOrigin.name;
+  }
+  
+  if (savedDestination && journeyDestinationInput) {
+    state.journey.destination = savedDestination;
+    journeyDestinationInput.value = savedDestination.name;
+    journeySearchState.destination.prevValue = savedDestination.name;
   }
   
   // Initialize theme
   initTheme();
   
-  // Start auto-refresh
+  // Sync and setup theme toggles
+  syncThemeToggles();
+  $('#theme-toggle')?.addEventListener('change', syncThemeToggles);
+  
+  // Start auto-refresh for departures
   startFixedRefresh();
   
-  // Set initial time displays
-  $('#local-time').textContent = new Date().toLocaleString();
-  
   // Initialize tab indicator position
-  requestAnimationFrame(updateTabIndicator);
+  setTimeout(() => requestAnimationFrame(updateTabIndicator), TAB_INDICATOR_DELAY);
 })();
