@@ -1618,6 +1618,17 @@ const createJourneyCard = (journey, index) => {
   
   card.querySelector('.journey-expand-btn').addEventListener('click', (e) => {
     e.stopPropagation();
+    
+    // Close all other expanded journey cards
+    const allCards = document.querySelectorAll('.journey-card');
+    allCards.forEach(otherCard => {
+      if (otherCard !== card && otherCard.classList.contains('expanded')) {
+        otherCard.classList.remove('expanded');
+        otherCard.classList.add('collapsed');
+      }
+    });
+    
+    // Toggle current card
     card.classList.toggle('collapsed');
     card.classList.toggle('expanded');
   });
