@@ -595,17 +595,29 @@ const renderStopovers = (stopovers, departure) => {
     `;
     
     // Stop information
-    const departureTime = stopover.departure ? fmtTime(stopover.departure) : 
-                         stopover.arrival ? fmtTime(stopover.arrival) : '—';
+    const actualTime = stopover.departure || stopover.arrival;
+    const plannedTime = stopover.plannedDeparture || stopover.plannedArrival;
     const platform = stopover.platform || stopover.plannedPlatform;
     
     const delay = stopover.departureDelay ?? stopover.arrivalDelay ?? 
-                  computeDelaySecs(
-                    stopover.departure || stopover.arrival,
-                    stopover.plannedDeparture || stopover.plannedArrival
-                  );
+                  computeDelaySecs(actualTime, plannedTime);
     
-    const delayBadge = renderDelayBadge(delay, 'small');
+    const hasDelayData = delay !== null;
+    const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
+    
+    // Build time display with strikethrough + color coding for delays
+    let timeDisplay = '';
+    if (hasSignificantDelay) {
+      const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
+      timeDisplay = `
+        <span class="font-mono font-medium line-through opacity-40">${fmtTime(plannedTime)}</span>
+        <span class="font-mono font-semibold ${delayColor}">${fmtTime(actualTime)}</span>
+      `;
+    } else if (hasDelayData && delay === 0) {
+      timeDisplay = `<span class="font-mono font-semibold text-success">${fmtTime(actualTime || plannedTime)}</span>`;
+    } else {
+      timeDisplay = `<span class="font-mono font-medium">${fmtTime(actualTime || plannedTime) || '—'}</span>`;
+    }
     
     const infoDiv = document.createElement('div');
     infoDiv.className = 'flex-1 min-w-0 flex items-center px-3';
@@ -616,8 +628,7 @@ const renderStopovers = (stopovers, departure) => {
             ${stopover.stop?.name || 'Unknown'}
           </div>
           <div class="text-sm flex items-center gap-2 flex-wrap mt-0.5 ${isPassed ? 'opacity-30' : 'opacity-70'}">
-            <span class="font-mono font-medium">${departureTime}</span>
-            ${delayBadge}
+            ${timeDisplay}
             ${platform ? `<span class="badge badge-xs badge-outline">Platform ${platform}</span>` : ''}
             ${isCurrent ? `<span class="badge badge-xs text-white" style="background-color: ${lineColor};">Current Stop</span>` : ''}
           </div>
@@ -905,19 +916,34 @@ const createVehiclePopupContent = (vehicle) => {
 
   const nextStopover = getUpcomingStopover(vehicle);
   const nextStop = nextStopover?.stop?.name;
-  const nextStopTime = nextStopover?.arrival || nextStopover?.plannedArrival 
-    ? fmtTime(nextStopover.arrival || nextStopover.plannedArrival)
-    : null;
-
+  
+  // Get actual and planned times
+  const actualTime = nextStopover?.arrival || nextStopover?.departure;
+  const plannedTime = nextStopover?.plannedArrival || nextStopover?.plannedDeparture;
+  
   const speed = vehicle.speed ? `${Math.round(vehicle.speed)} km/h` : null;
 
-  const delay = nextStopover?.arrivalDelay || nextStopover?.departureDelay;
-  const delayMins = delay != null ? Math.round(delay / 60) : null;
-  const delayBadge = delayMins != null && delayMins !== 0
-    ? `<span class="radar-popup-delay ${delayMins > 0 ? 'radar-popup-delay-late' : 'radar-popup-delay-early'}">
-         ${delayMins > 0 ? '+' : ''}${delayMins}m
-       </span>`
-    : '';
+  const delay = nextStopover?.arrivalDelay ?? nextStopover?.departureDelay ?? 
+                computeDelaySecs(actualTime, plannedTime);
+  
+  const hasDelayData = delay !== null;
+  const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
+  
+  // Build time display with strikethrough + color coding for delays
+  let timeDisplay = '';
+  if (actualTime || plannedTime) {
+    if (hasSignificantDelay) {
+      const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
+      timeDisplay = `
+        <span class="line-through opacity-40">${fmtTime(plannedTime)}</span>
+        <span class="${delayColor} font-semibold">${fmtTime(actualTime)}</span>
+      `;
+    } else if (hasDelayData && delay === 0) {
+      timeDisplay = `<span class="text-success font-semibold">${fmtTime(actualTime || plannedTime)}</span>`;
+    } else {
+      timeDisplay = `<span>${fmtTime(actualTime || plannedTime)}</span>`;
+    }
+  }
   
   return `
     <div class="radar-popup-container">
@@ -939,7 +965,7 @@ const createVehiclePopupContent = (vehicle) => {
             <div class="radar-popup-info-item">
               <div class="radar-popup-info-label">Next Stop</div>
               <div class="radar-popup-info-value">${nextStop}</div>
-              ${nextStopTime ? `<div class="radar-popup-info-time">${nextStopTime} ${delayBadge}</div>` : ''}
+              ${timeDisplay ? `<div class="radar-popup-info-time">${timeDisplay}</div>` : ''}
             </div>
             ${speed ? `
               <div class="radar-popup-info-item">
