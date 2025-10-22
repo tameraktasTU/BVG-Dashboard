@@ -379,8 +379,7 @@ const loadDepartures = async (stopId, duration, forceRefresh = false) => {
     try {
       const list = await fetchJSON(url);
       const items = Array.isArray(list) ? list : (list?.departures || list?.results || []);
-      
-      // Sort by actual departure time (when), fallback to planned time
+
       items.sort((a, b) => {
         const timeA = new Date(a.when || a.plannedWhen || 0).getTime();
         const timeB = new Date(b.when || b.plannedWhen || 0).getTime();
@@ -425,13 +424,11 @@ const renderDepartures = (items) => {
     const delay = departure.delay ?? computeDelaySecs(departure.when, departure.plannedWhen);
     const hasDelayData = delay !== null;
     const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
-    
-    // Planned time (with strikethrough if delayed)
+
     const plannedTimeDisplay = hasSignificantDelay
       ? `<span class="line-through opacity-40">${fmtTime(departure.plannedWhen)}</span>`
       : `<span>${fmtTime(departure.plannedWhen || departure.when)}</span>`;
-    
-    // Actual time (color-coded based on delay status)
+
     const actualTimeDisplay = hasDelayData
       ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">
            ${hasSignificantDelay ? fmtTime(departure.when) : fmtTime(departure.plannedWhen || departure.when)}
@@ -581,8 +578,7 @@ const renderStopovers = (stopovers, departure) => {
       stopDiv.className += ' rounded-lg';
       stopDiv.id = 'current-stop-item';
     }
-    
-    // Timeline indicator (dot and connecting line)
+
     const indicatorColor = (isPassed || isCurrent) ? '#9ca3af' : lineColor;
     const lineColorValue = isPassed ? '#9ca3af' : lineColor;
     
@@ -593,8 +589,7 @@ const renderStopovers = (stopovers, departure) => {
       <div class="w-3 h-3 rounded-full z-10 my-2 ${isCurrent ? 'ring-4 ring-primary/30' : ''}" style="background-color: ${isCurrent ? lineColor : indicatorColor};"></div>
       ${idx < stopovers.length - 1 ? `<div class="w-0.5 absolute top-2" style="height: calc(100% + 0.5rem); background-color: ${lineColorValue};"></div>` : ''}
     `;
-    
-    // Stop information
+
     const actualTime = stopover.departure || stopover.arrival;
     const plannedTime = stopover.plannedDeparture || stopover.plannedArrival;
     const platform = stopover.platform || stopover.plannedPlatform;
@@ -604,8 +599,7 @@ const renderStopovers = (stopovers, departure) => {
     
     const hasDelayData = delay !== null;
     const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
-    
-    // Build time display with strikethrough + color coding for delays
+
     let timeDisplay = '';
     if (hasSignificantDelay) {
       const delayColor = delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success';
@@ -928,8 +922,7 @@ const createVehiclePopupContent = (vehicle) => {
   
   const hasDelayData = delay !== null;
   const hasSignificantDelay = hasDelayData && Math.abs(delay) >= 60;
-  
-  // Build time display with strikethrough + color coding for delays
+
   let timeDisplay = '';
   if (actualTime || plannedTime) {
     if (hasSignificantDelay) {
@@ -1118,8 +1111,7 @@ const fetchRadarData = async (showLoading = true) => {
     if (!stop) {
       throw new Error('No stop available');
     }
-    
-    // Get 60-minute departures for this stop
+
     // If cache is empty, fetch fresh data
     if (state.allDepartures.length === 0) {
       const deptUrl = `${API_BASE}/stops/${encodeURIComponent(stop.id)}/departures?duration=${CACHE_DURATION_MINUTES}&remarks=true&language=en&pretty=false`;
@@ -1246,8 +1238,7 @@ const closeRadarModal = () => {
 
 const switchView = (viewName) => {
   state.currentView = viewName;
-  
-  // View configuration map
+
   const views = {
     departures: { element: $('#departures-view'), onShow: () => {
       setTimeout(() => requestAnimationFrame(updateTabIndicator), 0);
@@ -1255,8 +1246,7 @@ const switchView = (viewName) => {
     journey: { element: $('#journey-view') },
     settings: { element: $('#settings-view') }
   };
-  
-  // Hide all views and show selected one
+
   Object.entries(views).forEach(([name, config]) => {
     const isActive = name === viewName;
     setHidden(config.element, !isActive);
@@ -1264,8 +1254,7 @@ const switchView = (viewName) => {
       config.onShow();
     }
   });
-  
-  // Update dock buttons
+
   $$('.dock button').forEach(btn => btn.classList.remove('dock-active'));
   $(`#dock-${viewName}`)?.classList.add('dock-active');
   
@@ -1552,8 +1541,7 @@ const createJourneyCard = (journey, index) => {
   const hours = Math.floor(duration / 60);
   const minutes = duration % 60;
   const durationStr = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
-  
-  // Count only non-walking legs, then subtract 1 for transfers
+
   const transitLegs = journey.legs.filter(leg => leg.mode !== 'walking' && leg.line);
   const transfers = Math.max(0, transitLegs.length - 1);
   
@@ -1646,7 +1634,6 @@ const renderJourneyLegs = (legs) => {
       const isLastLeg = index === legs.length - 1;
       
       if (isWalking) {
-        // Check if this is a transfer
         const prevLeg = index > 0 ? legs[index - 1] : null;
         const nextLeg = index < legs.length - 1 ? legs[index + 1] : null;
         const isTransfer = (prevLeg && (prevLeg.mode !== 'walking' && prevLeg.line)) && 
@@ -1661,8 +1648,7 @@ const renderJourneyLegs = (legs) => {
           if (prevArrival && nextDeparture) {
             duration = Math.round((new Date(nextDeparture) - new Date(prevArrival)) / 60000);
           }
-          
-          // Compact transfer view - always show duration if available
+
           return `
             <div class="flex items-center gap-3 pb-2 ${!isLastLeg ? 'mb-4 pb-4 border-b border-base-200' : ''}">
               <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
@@ -1679,16 +1665,14 @@ const renderJourneyLegs = (legs) => {
             </div>
           `;
         }
-        
-        // For non-transfer walking legs, calculate their own duration
+
         let duration = 0;
         if (departureTime && arrivalTime) {
           const depTime = new Date(departureTime);
           const arrTime = new Date(arrivalTime);
           duration = Math.round((arrTime - depTime) / 60000);
         }
-        
-        // Full walking view for non-transfer walks
+
         return `
           <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
             <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
@@ -1866,7 +1850,6 @@ const TAB_INDICATOR_DELAY = 50;
 // ============================================================================
 
 (function init() {
-  // Setup journey location property watchers FIRST
   const saveJourneyLocations = () => {
     if (state.journey.origin) {
       localStorage.setItem('journeyOrigin', JSON.stringify(state.journey.origin));
