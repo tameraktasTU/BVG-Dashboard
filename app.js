@@ -433,7 +433,7 @@ const renderDepartures = (items) => {
       ? `<span class="${delay > 0 ? 'text-error' : delay < 0 ? 'text-info' : 'text-success'} font-semibold">
            ${hasSignificantDelay ? fmtTime(departure.when) : fmtTime(departure.plannedWhen || departure.when)}
          </span>`
-      : `<span>—</span>`;
+      : `<span>${fmtTime(departure.when || departure.plannedWhen)}</span>`;
     
     const tr = document.createElement('tr');
     tr.className = 'cursor-pointer hover:bg-base-300 transition-colors';
