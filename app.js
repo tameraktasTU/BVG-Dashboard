@@ -1687,9 +1687,9 @@ const renderJourneyLegs = (legs) => {
         return `
           <div class="flex gap-3 pb-5 ${!isLastLeg ? 'mb-4 border-b border-base-200' : ''}">
             <div class="flex flex-col items-center flex-shrink-0" style="width: 44px;">
-              <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: rgba(0,0,0,0.15);"></div>
-              <div class="w-0.5 flex-1 my-1" style="background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.15), rgba(0,0,0,0.15) 4px, transparent 4px, transparent 8px); min-height: 40px;"></div>
-              <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm" style="background-color: rgba(0,0,0,0.15);"></div>
+              <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm bg-neutral-400 dark:bg-base-600"></div>
+              <div class="w-0.5 flex-1 my-1 bg-neutral-400 dark:bg-base-600" style="min-height: 40px;"></div>
+              <div class="w-3 h-3 rounded-full border-2 border-base-100 shadow-sm bg-neutral-400 dark:bg-base-600"></div>
             </div>
             
             <div class="flex-1 min-w-0 -mt-1">
@@ -1724,8 +1724,8 @@ const renderJourneyLegs = (legs) => {
       const departureDelay = leg.departureDelay ?? computeDelaySecs(leg.departure, leg.plannedDeparture);
       const arrivalDelay = leg.arrivalDelay ?? computeDelaySecs(leg.arrival, leg.plannedArrival);
       
-      // Calculate number of stops
-      const stopCount = leg.stopovers ? leg.stopovers.length : null;
+      // Calculate number of stops (excluding destination)
+      const stopCount = leg.stopovers ? Math.max(0, leg.stopovers.length - 1) : null;
       const stopText = stopCount !== null && stopCount > 0 ? `${stopCount} stop${stopCount > 1 ? 's' : ''}` : '';
       
       return `
