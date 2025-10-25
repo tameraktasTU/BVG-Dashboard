@@ -71,13 +71,6 @@ const fmtTime = (iso) => {
   }
 };
 
-const fmtDelay = (secs) => {
-  if (secs == null) return '';
-  const mins = Math.round(secs / 60);
-  if (mins === 0) return 'On time';
-  return `${mins > 0 ? '+' : ''}${mins}m`;
-};
-
 const computeDelaySecs = (when, plannedWhen) => {
   if (!when || !plannedWhen) return null;
   const actualTime = new Date(when).getTime();
