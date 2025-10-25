@@ -1601,8 +1601,15 @@ const createJourneyCard = (journey, index) => {
     });
     
     // Toggle current card
+    const wasCollapsed = card.classList.contains('collapsed');
     card.classList.toggle('collapsed');
     card.classList.toggle('expanded');
+
+    if (wasCollapsed) {
+      setTimeout(() => {
+        card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   });
   
   return card;
