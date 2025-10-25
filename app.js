@@ -134,27 +134,6 @@ const extractLineColor = (badgeClass) => {
 };
 
 // ============================================================================
-// DELAY BADGE RENDERING
-// ============================================================================
-
-const renderDelayBadge = (delay, size = 'normal') => {
-  if (delay == null) return '';
-  
-  const mins = Math.round(delay / 60);
-  if (mins === 0) return '';
-  
-  const isLate = mins > 0;
-  const badgeType = isLate ? 'warning' : 'info';
-  const displayText = isLate ? `+${mins}` : `${mins}`;
-  
-  if (size === 'small') {
-    return `<span class="delay-badge delay-badge-${badgeType} inline-flex items-center justify-center px-0.5 rounded text-[0.65rem] leading-none font-semibold border w-[2.25rem]" style="padding-top: 1px; padding-bottom: 1px;">${displayText}</span>`;
-  }
-  
-  return `<span class="delay-badge delay-badge-${badgeType} inline-flex items-center justify-center px-1 py-0.5 rounded text-xs font-semibold border whitespace-nowrap w-[2.75rem]">${displayText}</span>`;
-};
-
-// ============================================================================
 // API COMMUNICATION
 // ============================================================================
 
