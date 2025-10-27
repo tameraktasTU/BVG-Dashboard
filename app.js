@@ -1608,7 +1608,7 @@ const createJourneyCard = (journey, index) => {
     if (wasCollapsed) {
       setTimeout(() => {
         card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
+      }, 300);
     }
   });
   
